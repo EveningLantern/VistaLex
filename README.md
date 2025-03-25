@@ -1,5 +1,6 @@
 
-# Vision Accessibility Text Tools
+# VISTA LEX
+## A Clear Vision For Text Accessibility
 
 ## Project Overview
 
