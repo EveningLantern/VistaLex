@@ -4,14 +4,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ColorBlindnessThemes from '@/components/ColorBlindnessThemes';
 import DyslexiaSettings from '@/components/DyslexiaSettings';
 import { Button } from '@/components/ui/button';
-import { Eye, BookOpen, Brain } from 'lucide-react';
+import { Eye, BookOpen, Brain, Save } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/context/AuthContext';
+import { Link } from 'react-router-dom';
 
 type ColorTheme = 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast';
 
 type AccessibilitySettingsProps = {
-  colorTheme: ColorTheme;
+  colorTheme: string;
   setColorTheme: (theme: ColorTheme) => void;
   dyslexiaSettings: {
     useDyslexicFont: boolean;
@@ -27,6 +29,7 @@ type AccessibilitySettingsProps = {
   }>>;
   adhdMode: boolean;
   setAdhdMode: (enabled: boolean) => void;
+  isLoggedIn?: boolean;
 };
 
 const AccessibilitySettings = ({
@@ -35,47 +38,103 @@ const AccessibilitySettings = ({
   dyslexiaSettings,
   setDyslexiaSettings,
   adhdMode,
-  setAdhdMode
+  setAdhdMode,
+  isLoggedIn = false
 }: AccessibilitySettingsProps) => {
   const [activeTab, setActiveTab] = useState("vision");
+  const { updateAccessibilityPreferences } = useAuth();
+  
+  const [tempPreferences, setTempPreferences] = useState({
+    colorTheme: colorTheme as ColorTheme,
+    adhdMode,
+    dyslexiaSettings: { ...dyslexiaSettings }
+  });
   
   const handleDyslexicFontToggle = () => {
-    setDyslexiaSettings(prev => ({
+    setTempPreferences(prev => ({
       ...prev,
-      useDyslexicFont: !prev.useDyslexicFont
+      dyslexiaSettings: {
+        ...prev.dyslexiaSettings,
+        useDyslexicFont: !prev.dyslexiaSettings.useDyslexicFont
+      }
     }));
   };
   
   const handleBoldFirstLetterToggle = () => {
-    setDyslexiaSettings(prev => ({
+    setTempPreferences(prev => ({
       ...prev,
-      boldFirstLetter: !prev.boldFirstLetter
+      dyslexiaSettings: {
+        ...prev.dyslexiaSettings,
+        boldFirstLetter: !prev.dyslexiaSettings.boldFirstLetter
+      }
     }));
   };
   
   const handleUnderlineVerbsToggle = () => {
-    setDyslexiaSettings(prev => ({
+    setTempPreferences(prev => ({
       ...prev,
-      underlineVerbs: !prev.underlineVerbs
+      dyslexiaSettings: {
+        ...prev.dyslexiaSettings,
+        underlineVerbs: !prev.dyslexiaSettings.underlineVerbs
+      }
     }));
   };
   
   const handleUnderlineComplexWordsToggle = () => {
-    setDyslexiaSettings(prev => ({
+    setTempPreferences(prev => ({
       ...prev,
-      underlineComplexWords: !prev.underlineComplexWords
+      dyslexiaSettings: {
+        ...prev.dyslexiaSettings,
+        underlineComplexWords: !prev.dyslexiaSettings.underlineComplexWords
+      }
+    }));
+  };
+  
+  const handleColorThemeChange = (theme: ColorTheme) => {
+    setTempPreferences(prev => ({
+      ...prev,
+      colorTheme: theme
+    }));
+  };
+  
+  const handleAdhdModeToggle = (enabled: boolean) => {
+    setTempPreferences(prev => ({
+      ...prev,
+      adhdMode: enabled
     }));
   };
   
   const resetAllSettings = () => {
-    setColorTheme('default');
-    setDyslexiaSettings({
-      useDyslexicFont: false,
-      boldFirstLetter: false,
-      underlineVerbs: false,
-      underlineComplexWords: false
-    });
-    setAdhdMode(false);
+    const defaultSettings = {
+      colorTheme: 'default' as ColorTheme,
+      adhdMode: false,
+      dyslexiaSettings: {
+        useDyslexicFont: false,
+        boldFirstLetter: false,
+        underlineVerbs: false,
+        underlineComplexWords: false
+      }
+    };
+    
+    setTempPreferences(defaultSettings);
+    
+    if (isLoggedIn) {
+      updateAccessibilityPreferences(defaultSettings);
+    } else {
+      setColorTheme(defaultSettings.colorTheme);
+      setAdhdMode(defaultSettings.adhdMode);
+      setDyslexiaSettings(defaultSettings.dyslexiaSettings);
+    }
+  };
+  
+  const savePreferences = () => {
+    if (isLoggedIn) {
+      updateAccessibilityPreferences(tempPreferences);
+    } else {
+      setColorTheme(tempPreferences.colorTheme);
+      setAdhdMode(tempPreferences.adhdMode);
+      setDyslexiaSettings(tempPreferences.dyslexiaSettings);
+    }
   };
   
   return (
@@ -96,17 +155,17 @@ const AccessibilitySettings = ({
         <div className="p-4 border rounded-lg bg-secondary/30">
           <TabsContent value="vision" className="mt-0">
             <ColorBlindnessThemes 
-              currentTheme={colorTheme} 
-              onChange={setColorTheme} 
+              currentTheme={tempPreferences.colorTheme} 
+              onChange={handleColorThemeChange} 
             />
           </TabsContent>
           
           <TabsContent value="dyslexia" className="mt-0">
             <DyslexiaSettings
-              useDyslexicFont={dyslexiaSettings.useDyslexicFont}
-              boldFirstLetter={dyslexiaSettings.boldFirstLetter}
-              underlineVerbs={dyslexiaSettings.underlineVerbs}
-              underlineComplexWords={dyslexiaSettings.underlineComplexWords}
+              useDyslexicFont={tempPreferences.dyslexiaSettings.useDyslexicFont}
+              boldFirstLetter={tempPreferences.dyslexiaSettings.boldFirstLetter}
+              underlineVerbs={tempPreferences.dyslexiaSettings.underlineVerbs}
+              underlineComplexWords={tempPreferences.dyslexiaSettings.underlineComplexWords}
               onToggleDyslexicFont={handleDyslexicFontToggle}
               onToggleBoldFirstLetter={handleBoldFirstLetterToggle}
               onToggleUnderlineVerbs={handleUnderlineVerbsToggle}
@@ -127,8 +186,8 @@ const AccessibilitySettings = ({
                 </div>
                 <Switch
                   id="adhd-mode"
-                  checked={adhdMode}
-                  onCheckedChange={setAdhdMode}
+                  checked={tempPreferences.adhdMode}
+                  onCheckedChange={handleAdhdModeToggle}
                 />
               </div>
               
@@ -140,13 +199,34 @@ const AccessibilitySettings = ({
         </div>
       </Tabs>
       
-      <Button 
-        variant="outline" 
-        className="w-full mt-4 text-sm h-8"
-        onClick={resetAllSettings}
-      >
-        Reset All Settings
-      </Button>
+      <div className="flex flex-col gap-3 mt-4">
+        <Button 
+          className="w-full flex items-center gap-2"
+          onClick={savePreferences}
+        >
+          <Save className="h-4 w-4" />
+          Save Preferences
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          className="w-full text-sm h-8"
+          onClick={resetAllSettings}
+        >
+          Reset All Settings
+        </Button>
+
+        {!isLoggedIn && (
+          <div className="text-center mt-2">
+            <p className="text-sm text-muted-foreground mb-2">
+              To save your preferences permanently:
+            </p>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/auth">Create an Account</Link>
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

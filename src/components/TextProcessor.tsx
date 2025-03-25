@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FileText, Text, Settings } from 'lucide-react';
+import { FileText, Text, Settings, LogOut } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import AccessibilitySettings from '@/components/AccessibilitySettings';
 import TextDisplay from '@/components/TextDisplay';
@@ -12,24 +12,20 @@ import ReadAloud from '@/components/ReadAloud';
 import { processADHDText } from '@/lib/textProcessing';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-
-type ColorTheme = 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast';
+import { useAuth } from '@/context/AuthContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
+import { Link } from 'react-router-dom';
 
 const TextProcessor = () => {
   const [text, setText] = useState('');
   const [processedWords, setProcessedWords] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [colorTheme, setColorTheme] = useState<ColorTheme>('default');
-  const [dyslexiaSettings, setDyslexiaSettings] = useState({
-    useDyslexicFont: false,
-    boldFirstLetter: false,
-    underlineVerbs: false,
-    underlineComplexWords: false
-  });
-  const [adhdMode, setAdhdMode] = useState(false);
-  const [activeLeftTab, setActiveLeftTab] = useState("text");
   const [showSettings, setShowSettings] = useState(false);
+  const [activeLeftTab, setActiveLeftTab] = useState("text");
   
+  const { user, signOut } = useAuth();
+  const { colorTheme, adhdMode, dyslexiaSettings } = useUserPreferences();
+
   useEffect(() => {
     if (text) {
       setProcessedWords(processADHDText(text));
@@ -106,14 +102,35 @@ const TextProcessor = () => {
                 </TabsTrigger>
               </TabsList>
               
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={handleToggleSettings}
-                className={showSettings ? "text-primary" : ""}
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleToggleSettings}
+                  className={showSettings ? "text-primary" : ""}
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+                
+                {user ? (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={signOut}
+                    title="Sign out"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    asChild
+                  >
+                    <Link to="/auth">Login</Link>
+                  </Button>
+                )}
+              </div>
             </div>
             
             <div className="p-4 glass rounded-lg animate-fade-in">
@@ -162,11 +179,12 @@ const TextProcessor = () => {
           <div className="animate-scale-in">
             <AccessibilitySettings 
               colorTheme={colorTheme}
-              setColorTheme={setColorTheme}
+              setColorTheme={() => {}} // Now handled through the auth context
               dyslexiaSettings={dyslexiaSettings}
-              setDyslexiaSettings={setDyslexiaSettings}
+              setDyslexiaSettings={() => {}} // Now handled through the auth context
               adhdMode={adhdMode}
-              setAdhdMode={setAdhdMode}
+              setAdhdMode={() => {}} // Now handled through the auth context
+              isLoggedIn={!!user}
             />
           </div>
         )}
