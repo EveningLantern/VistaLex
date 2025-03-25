@@ -177,7 +177,9 @@ const TextProcessor = () => {
         {adhdMode ? (
           <ADHDMode 
             words={processedWords} 
-            isActive={adhdMode} 
+            isActive={adhdMode}
+            colorTheme={colorTheme}
+            dyslexiaOptions={dyslexiaSettings}
           />
         ) : (
           <TextDisplay 
