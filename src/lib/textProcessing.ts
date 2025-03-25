@@ -46,40 +46,89 @@ export function processADHDText(text: string) {
   return text.split(/\s+/).filter(word => word.trim().length > 0);
 }
 
-// Function to extract text from uploaded file (mock for demo)
-export async function extractTextFromFile(file: File): Promise<string> {
+// Extract text from PDF file
+export async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    // This is a simplified mock function
-    // In a real application, you would use proper libraries to extract text from PDF/DOCX
-    
     const reader = new FileReader();
     
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        // For plain text files
-        if (file.type === 'text/plain') {
-          resolve(event.target.result as string);
-        } 
-        // Mock extraction for PDFs and DOCXs
-        else if (file.type === 'application/pdf') {
-          resolve(`This is extracted text from the PDF document: ${file.name}`);
+    reader.onload = async (event) => {
+      try {
+        if (event.target?.result) {
+          // @ts-ignore - we're importing the module dynamically
+          const pdfParse = await import('pdf-parse');
+          const pdfData = new Uint8Array(event.target.result as ArrayBuffer);
+          const result = await pdfParse.default(pdfData);
+          resolve(result.text);
+        } else {
+          reject(new Error('Failed to read PDF file'));
         }
-        else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          resolve(`This is extracted text from the Word document: ${file.name}`);
-        }
-        else {
-          resolve(`Text extracted from ${file.name}`);
-        }
-      } else {
-        reject(new Error('Failed to read file'));
+      } catch (error) {
+        console.error('Error parsing PDF:', error);
+        reject(new Error('Failed to parse PDF file'));
       }
     };
     
     reader.onerror = () => {
-      reject(new Error('Failed to read file'));
+      reject(new Error('Failed to read PDF file'));
     };
     
-    // Read as text for simplicity
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   });
+}
+
+// Extract text from DOCX file
+export async function extractTextFromDOCX(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = async (event) => {
+      try {
+        if (event.target?.result) {
+          // @ts-ignore - we're importing the module dynamically
+          const mammoth = await import('mammoth');
+          const result = await mammoth.default.extractRawText({
+            arrayBuffer: event.target.result as ArrayBuffer
+          });
+          resolve(result.value);
+        } else {
+          reject(new Error('Failed to read DOCX file'));
+        }
+      } catch (error) {
+        console.error('Error parsing DOCX:', error);
+        reject(new Error('Failed to parse DOCX file'));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Failed to read DOCX file'));
+    };
+    
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Extract text from any supported file type
+export async function extractTextFromFile(file: File): Promise<string> {
+  try {
+    if (file.type === 'application/pdf') {
+      return await extractTextFromPDF(file);
+    } 
+    else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      return await extractTextFromDOCX(file);
+    }
+    else if (file.type === 'text/plain') {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string || '');
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    } 
+    else {
+      throw new Error(`Unsupported file type: ${file.type}`);
+    }
+  } catch (error) {
+    console.error('Error extracting text:', error);
+    throw error;
+  }
 }

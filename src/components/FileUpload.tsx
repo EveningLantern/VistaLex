@@ -1,8 +1,10 @@
+
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { Upload, FileText, FileIcon, ImageIcon, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import { extractTextFromFile } from '@/lib/textProcessing';
 
 type FileUploadProps = {
   onTextExtracted: (text: string) => void;
@@ -44,10 +46,9 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
     setIsProcessing(true);
     
     try {
-      // In a real app, use proper libraries to extract text
-      // For this demo, we'll simulate extraction
-      const text = await simulateTextExtraction(file);
-      onTextExtracted(text);
+      // Use our new utility to extract text from the file
+      const extractedText = await extractTextFromFile(file);
+      onTextExtracted(extractedText);
       toast.success('File processed successfully');
     } catch (error) {
       toast.error('Failed to process file', {
@@ -57,27 +58,6 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
     } finally {
       setIsProcessing(false);
     }
-  };
-  
-  const simulateTextExtraction = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      // Simulate processing time
-      setTimeout(() => {
-        // For this demo, return mock text based on file type
-        if (file.type === 'application/pdf') {
-          resolve(`This is sample text extracted from the PDF document "${file.name}". The accessibility features of VistaLex make text content more accessible to people with various visual, cognitive, and learning needs. This demonstration shows how the application can process documents and provide adjustable viewing options.`);
-        } else if (file.type.includes('word')) {
-          resolve(`This is sample text extracted from the Word document "${file.name}". VistaLex provides features like color themes for people with color blindness, dyslexia-friendly formatting, ADHD focus mode, and text-to-speech capabilities. These features ensure that everyone can access and engage with textual content according to their unique needs.`);
-        } else {
-          // For text files, use FileReader to get actual content
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            resolve(e.target?.result as string || `Text extracted from ${file.name}`);
-          };
-          reader.readAsText(file);
-        }
-      }, 1500);
-    });
   };
   
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
