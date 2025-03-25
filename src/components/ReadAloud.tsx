@@ -4,7 +4,7 @@ import { Play, Pause, Volume2, VolumeX, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 type ReadAloudProps = {

@@ -1,9 +1,8 @@
-
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { Upload, FileText, FileIcon, ImageIcon, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 
 type FileUploadProps = {
   onTextExtracted: (text: string) => void;

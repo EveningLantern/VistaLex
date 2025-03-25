@@ -10,7 +10,7 @@ import TextDisplay from '@/components/TextDisplay';
 import ADHDMode from '@/components/ADHDMode';
 import ReadAloud from '@/components/ReadAloud';
 import { processADHDText } from '@/lib/textProcessing';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 type ColorTheme = 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast';
