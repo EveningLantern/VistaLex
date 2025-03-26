@@ -18,8 +18,8 @@ import {
   AlignCenter, 
   AlignRight, 
   Type, 
-  LineHeight, 
-  Spacing, 
+  TextIcon, 
+  GanttChartSquare, 
   ImagePlus 
 } from 'lucide-react';
 import { Label } from './ui/label';
@@ -65,7 +65,7 @@ const TextFormatting: React.FC<TextFormattingProps> = ({
 
         <MenubarMenu>
           <MenubarTrigger className="gap-1">
-            <LineHeight className="h-4 w-4" /> Line Height
+            <TextIcon className="h-4 w-4" /> Line Height
           </MenubarTrigger>
           <MenubarContent>
             <MenubarLabel>Line Height</MenubarLabel>
@@ -88,7 +88,7 @@ const TextFormatting: React.FC<TextFormattingProps> = ({
 
         <MenubarMenu>
           <MenubarTrigger className="gap-1">
-            <Spacing className="h-4 w-4" /> Paragraph Spacing
+            <GanttChartSquare className="h-4 w-4" /> Paragraph Spacing
           </MenubarTrigger>
           <MenubarContent>
             <MenubarLabel>Paragraph Spacing</MenubarLabel>
