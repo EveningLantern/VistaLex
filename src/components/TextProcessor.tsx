@@ -177,15 +177,7 @@ const TextProcessor = () => {
         {/* Settings Panel - Show only when settings button is clicked */}
         {showSettings && (
           <div className="animate-scale-in">
-            <AccessibilitySettings 
-              colorTheme={colorTheme}
-              setColorTheme={() => {}} // Now handled through the auth context
-              dyslexiaSettings={dyslexiaSettings}
-              setDyslexiaSettings={() => {}} // Now handled through the auth context
-              adhdMode={adhdMode}
-              setAdhdMode={() => {}} // Now handled through the auth context
-              isLoggedIn={!!user}
-            />
+            <AccessibilitySettings isLoggedIn={!!user} />
           </div>
         )}
       </div>

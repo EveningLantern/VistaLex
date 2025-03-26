@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { Profile } from '@/lib/supabase';
+import { Profile, UserAccessibilityPreferences, supabase } from '@/lib/supabase';
 
 type UserPreferencesContextType = {
   colorTheme: string;
@@ -12,9 +12,17 @@ type UserPreferencesContextType = {
     underlineVerbs: boolean;
     underlineComplexWords: boolean;
   };
+  updateColorTheme: (theme: 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast') => void;
+  updateAdhdMode: (enabled: boolean) => void;
+  updateDyslexiaSettings: (settings: {
+    useDyslexicFont: boolean;
+    boldFirstLetter: boolean;
+    underlineVerbs: boolean;
+    underlineComplexWords: boolean;
+  }) => void;
 };
 
-const defaultPreferences: UserPreferencesContextType = {
+const defaultPreferences: UserAccessibilityPreferences = {
   colorTheme: 'default',
   adhdMode: false,
   dyslexiaSettings: {
@@ -25,11 +33,16 @@ const defaultPreferences: UserPreferencesContextType = {
   }
 };
 
-const UserPreferencesContext = createContext<UserPreferencesContextType>(defaultPreferences);
+const UserPreferencesContext = createContext<UserPreferencesContextType>({
+  ...defaultPreferences,
+  updateColorTheme: () => {},
+  updateAdhdMode: () => {},
+  updateDyslexiaSettings: () => {}
+});
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
-  const { profile } = useAuth();
-  const [preferences, setPreferences] = useState<UserPreferencesContextType>(defaultPreferences);
+  const { user, profile, updateAccessibilityPreferences } = useAuth();
+  const [preferences, setPreferences] = useState<UserAccessibilityPreferences>(defaultPreferences);
 
   useEffect(() => {
     if (profile) {
@@ -43,8 +56,53 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     }
   }, [profile]);
 
+  const updateColorTheme = async (theme: 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast') => {
+    setPreferences(prev => ({ ...prev, colorTheme: theme }));
+    
+    if (user) {
+      await updateAccessibilityPreferences({
+        ...preferences,
+        colorTheme: theme
+      });
+    }
+  };
+
+  const updateAdhdMode = async (enabled: boolean) => {
+    setPreferences(prev => ({ ...prev, adhdMode: enabled }));
+    
+    if (user) {
+      await updateAccessibilityPreferences({
+        ...preferences,
+        adhdMode: enabled
+      });
+    }
+  };
+
+  const updateDyslexiaSettings = async (settings: {
+    useDyslexicFont: boolean;
+    boldFirstLetter: boolean;
+    underlineVerbs: boolean;
+    underlineComplexWords: boolean;
+  }) => {
+    setPreferences(prev => ({ ...prev, dyslexiaSettings: settings }));
+    
+    if (user) {
+      await updateAccessibilityPreferences({
+        ...preferences,
+        dyslexiaSettings: settings
+      });
+    }
+  };
+
   return (
-    <UserPreferencesContext.Provider value={preferences}>
+    <UserPreferencesContext.Provider 
+      value={{ 
+        ...preferences, 
+        updateColorTheme, 
+        updateAdhdMode, 
+        updateDyslexiaSettings 
+      }}
+    >
       {children}
     </UserPreferencesContext.Provider>
   );

@@ -5,11 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Eye, BookOpen, Brain } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import ColorBlindnessThemes from '@/components/ColorBlindnessThemes';
 import DyslexiaSettings from '@/components/DyslexiaSettings';
 import { useAuth } from '@/context/AuthContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { UserAccessibilityPreferences } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 interface AccessibilityPreferencesFormProps {
   onComplete?: () => void;
@@ -17,17 +18,13 @@ interface AccessibilityPreferencesFormProps {
 
 const AccessibilityPreferencesForm = ({ onComplete }: AccessibilityPreferencesFormProps) => {
   const { updateAccessibilityPreferences } = useAuth();
+  const { colorTheme, adhdMode, dyslexiaSettings } = useUserPreferences();
   const [activeTab, setActiveTab] = useState("vision");
   
   const [preferences, setPreferences] = useState<UserAccessibilityPreferences>({
-    colorTheme: 'default',
-    adhdMode: false,
-    dyslexiaSettings: {
-      useDyslexicFont: false,
-      boldFirstLetter: false,
-      underlineVerbs: false,
-      underlineComplexWords: false
-    }
+    colorTheme: colorTheme as 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast',
+    adhdMode,
+    dyslexiaSettings: { ...dyslexiaSettings }
   });
 
   const handleColorThemeChange = (theme: 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast') => {
@@ -55,9 +52,15 @@ const AccessibilityPreferencesForm = ({ onComplete }: AccessibilityPreferencesFo
   };
 
   const handleSavePreferences = async () => {
-    await updateAccessibilityPreferences(preferences);
-    if (onComplete) {
-      onComplete();
+    try {
+      await updateAccessibilityPreferences(preferences);
+      toast.success('Preferences saved successfully');
+      if (onComplete) {
+        onComplete();
+      }
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      toast.error('Failed to save preferences');
     }
   };
 

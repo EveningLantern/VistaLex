@@ -8,41 +8,27 @@ import { Eye, BookOpen, Brain, Save } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { Link } from 'react-router-dom';
+import { toast } from '@/lib/toast';
 
 type ColorTheme = 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast';
 
 type AccessibilitySettingsProps = {
-  colorTheme: string;
-  setColorTheme: (theme: ColorTheme) => void;
-  dyslexiaSettings: {
-    useDyslexicFont: boolean;
-    boldFirstLetter: boolean;
-    underlineVerbs: boolean;
-    underlineComplexWords: boolean;
-  };
-  setDyslexiaSettings: React.Dispatch<React.SetStateAction<{
-    useDyslexicFont: boolean;
-    boldFirstLetter: boolean;
-    underlineVerbs: boolean;
-    underlineComplexWords: boolean;
-  }>>;
-  adhdMode: boolean;
-  setAdhdMode: (enabled: boolean) => void;
   isLoggedIn?: boolean;
 };
 
-const AccessibilitySettings = ({
-  colorTheme,
-  setColorTheme,
-  dyslexiaSettings,
-  setDyslexiaSettings,
-  adhdMode,
-  setAdhdMode,
-  isLoggedIn = false
-}: AccessibilitySettingsProps) => {
+const AccessibilitySettings = ({ isLoggedIn = false }: AccessibilitySettingsProps) => {
   const [activeTab, setActiveTab] = useState("vision");
-  const { updateAccessibilityPreferences } = useAuth();
+  const { user } = useAuth();
+  const { 
+    colorTheme, 
+    adhdMode, 
+    dyslexiaSettings, 
+    updateColorTheme, 
+    updateAdhdMode, 
+    updateDyslexiaSettings 
+  } = useUserPreferences();
   
   const [tempPreferences, setTempPreferences] = useState({
     colorTheme: colorTheme as ColorTheme,
@@ -117,24 +103,19 @@ const AccessibilitySettings = ({
     };
     
     setTempPreferences(defaultSettings);
+    updateColorTheme(defaultSettings.colorTheme);
+    updateAdhdMode(defaultSettings.adhdMode);
+    updateDyslexiaSettings(defaultSettings.dyslexiaSettings);
     
-    if (isLoggedIn) {
-      updateAccessibilityPreferences(defaultSettings);
-    } else {
-      setColorTheme(defaultSettings.colorTheme);
-      setAdhdMode(defaultSettings.adhdMode);
-      setDyslexiaSettings(defaultSettings.dyslexiaSettings);
-    }
+    toast.success('Settings reset to defaults');
   };
   
   const savePreferences = () => {
-    if (isLoggedIn) {
-      updateAccessibilityPreferences(tempPreferences);
-    } else {
-      setColorTheme(tempPreferences.colorTheme);
-      setAdhdMode(tempPreferences.adhdMode);
-      setDyslexiaSettings(tempPreferences.dyslexiaSettings);
-    }
+    updateColorTheme(tempPreferences.colorTheme);
+    updateAdhdMode(tempPreferences.adhdMode);
+    updateDyslexiaSettings(tempPreferences.dyslexiaSettings);
+    
+    toast.success('Preferences saved successfully');
   };
   
   return (
@@ -216,7 +197,7 @@ const AccessibilitySettings = ({
           Reset All Settings
         </Button>
 
-        {!isLoggedIn && (
+        {!user && (
           <div className="text-center mt-2">
             <p className="text-sm text-muted-foreground mb-2">
               To save your preferences permanently:
