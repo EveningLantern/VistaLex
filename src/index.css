@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -114,6 +115,11 @@
     --ring: 0 0% 100%;
     --card: 0 0% 10%;
     --card-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+    --input: 0 0% 100%;
   }
 
   /* Dyslexia friendly */
@@ -123,7 +129,7 @@
   
   /* ADHD mode */
   .adhd-word {
-    @apply text-5xl md:text-6xl lg:text-7xl font-bold py-6 px-4 inline-block animate-float;
+    @apply text-5xl md:text-6xl lg:text-7xl font-bold py-6 px-4 inline-block animate-float text-center;
   }
 
   /* Text formatting options */

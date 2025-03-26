@@ -32,6 +32,7 @@ const ADHDMode = ({
 }: ADHDModeProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [displayWords, setDisplayWords] = useState<string[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Set how many words to display at once (3 is a good default)
   const wordsPerGroup = 3;
@@ -55,18 +56,20 @@ const ADHDMode = ({
     
     setDisplayWords(currentWords);
     
-    // Auto-advance every 2 seconds if there are more words
-    const timer = setTimeout(() => {
-      if (currentIndex + wordsPerGroup < words.length) {
-        setCurrentIndex(prevIndex => prevIndex + wordsPerGroup);
-      } else if (words.length > wordsPerGroup) {
-        // Loop back to start when reaching the end
-        setCurrentIndex(0);
-      }
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, [currentIndex, words, isActive, wordsPerGroup]);
+    // Auto-advance every 2 seconds if there are more words and not paused
+    if (!isPaused) {
+      const timer = setTimeout(() => {
+        if (currentIndex + wordsPerGroup < words.length) {
+          setCurrentIndex(prevIndex => prevIndex + wordsPerGroup);
+        } else if (words.length > wordsPerGroup) {
+          // Loop back to start when reaching the end
+          setCurrentIndex(0);
+        }
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, words, isActive, wordsPerGroup, isPaused]);
   
   const handlePrevGroup = () => {
     setCurrentIndex(prevIndex => Math.max(0, prevIndex - wordsPerGroup));
@@ -74,6 +77,10 @@ const ADHDMode = ({
   
   const handleNextGroup = () => {
     setCurrentIndex(prevIndex => Math.min(words.length - 1, prevIndex + wordsPerGroup));
+  };
+  
+  const togglePause = () => {
+    setIsPaused(!isPaused);
   };
   
   if (!isActive || words.length === 0) {
@@ -99,14 +106,15 @@ const ADHDMode = ({
         />
       </div>
       
-      <div className="mb-8">
+      <div className="mb-8 flex flex-col items-center justify-center">
         {displayWords.map((word, index) => (
           <span 
             key={index} 
             className={cn(
               "adhd-word",
               dyslexiaOptions.useDyslexicFont && "font-['OpenDyslexic']",
-              dyslexiaOptions.boldFirstLetter && "first-letter:font-bold"
+              dyslexiaOptions.boldFirstLetter && "first-letter:font-bold",
+              colorTheme === "high-contrast" ? "text-white" : "text-primary"
             )}
             style={{
               animationDelay: `${index * 0.2}s`,
@@ -123,17 +131,33 @@ const ADHDMode = ({
           disabled={currentIndex === 0}
           className={cn(
             "px-4 py-2 rounded-full bg-primary/20 text-primary-foreground",
-            "hover:bg-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            "hover:bg-primary/30 disabled:opacity-50 disabled:cursor-not-allowed",
+            colorTheme === "high-contrast" && "bg-white/30 text-white hover:bg-white/40"
           )}
         >
           Previous
         </button>
+        
+        <button 
+          onClick={togglePause}
+          className={cn(
+            "px-4 py-2 rounded-full",
+            isPaused 
+              ? "bg-green-500/20 text-green-700 hover:bg-green-500/30" 
+              : "bg-amber-500/20 text-amber-700 hover:bg-amber-500/30",
+            colorTheme === "high-contrast" && "bg-white/30 text-white hover:bg-white/40"
+          )}
+        >
+          {isPaused ? "Play" : "Pause"}
+        </button>
+        
         <button 
           onClick={handleNextGroup}
           disabled={currentIndex + wordsPerGroup >= words.length}
           className={cn(
             "px-4 py-2 rounded-full bg-primary/20 text-primary-foreground",
-            "hover:bg-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            "hover:bg-primary/30 disabled:opacity-50 disabled:cursor-not-allowed",
+            colorTheme === "high-contrast" && "bg-white/30 text-white hover:bg-white/40"
           )}
         >
           Next

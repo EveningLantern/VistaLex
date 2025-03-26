@@ -68,13 +68,15 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (profile) {
+      // Load preferences from user profile
       setPreferences({
-        colorTheme: profile.color_theme,
-        adhdMode: profile.adhd_mode,
-        dyslexiaSettings: profile.dyslexia_settings,
+        colorTheme: profile.color_theme || defaultPreferences.colorTheme,
+        adhdMode: profile.adhd_mode || defaultPreferences.adhdMode,
+        dyslexiaSettings: profile.dyslexia_settings || defaultPreferences.dyslexiaSettings,
         textFormatting: defaultPreferences.textFormatting // Initialize with defaults as this is a new feature
       });
     } else {
+      // Use default preferences if no profile exists
       setPreferences(defaultPreferences);
     }
   }, [profile]);
@@ -124,9 +126,28 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   }) => {
     setPreferences(prev => ({ ...prev, textFormatting: settings }));
     
-    // Text formatting is stored locally only for now
+    // Store text formatting in local storage for persistence
+    localStorage.setItem('textFormatting', JSON.stringify(settings));
+    
     // In a full implementation, we would store this in the user profile
+    // This is a placeholder for future implementation
   };
+
+  // Try to load text formatting from local storage on initial load
+  useEffect(() => {
+    try {
+      const savedFormatting = localStorage.getItem('textFormatting');
+      if (savedFormatting) {
+        const parsedFormatting = JSON.parse(savedFormatting);
+        setPreferences(prev => ({
+          ...prev,
+          textFormatting: parsedFormatting
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading text formatting from localStorage:', error);
+    }
+  }, []);
 
   return (
     <UserPreferencesContext.Provider 

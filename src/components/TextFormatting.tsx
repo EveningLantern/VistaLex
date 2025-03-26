@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Menubar,
   MenubarContent,
@@ -37,6 +37,25 @@ const TextFormatting: React.FC<TextFormattingProps> = ({
   onParagraphSpacingChange,
   onImageUploadClick
 }) => {
+  const [letterSpacing, setLetterSpacing] = useState<string>('normal');
+  const [lineHeight, setLineHeight] = useState<string>('normal');
+  const [paragraphSpacing, setParagraphSpacing] = useState<string>('normal');
+
+  const handleLetterSpacingChange = (value: string) => {
+    setLetterSpacing(value);
+    onLetterSpacingChange(value);
+  };
+
+  const handleLineHeightChange = (value: string) => {
+    setLineHeight(value);
+    onLineHeightChange(value);
+  };
+
+  const handleParagraphSpacingChange = (value: string) => {
+    setParagraphSpacing(value);
+    onParagraphSpacingChange(value);
+  };
+
   return (
     <div className="w-full mb-4 glass rounded-lg p-2 animate-fade-in">
       <Menubar className="border-none bg-transparent p-0">
@@ -46,17 +65,17 @@ const TextFormatting: React.FC<TextFormattingProps> = ({
           </MenubarTrigger>
           <MenubarContent>
             <MenubarLabel>Letter Spacing</MenubarLabel>
-            <MenubarRadioGroup value="normal">
-              <MenubarRadioItem value="tight" onClick={() => onLetterSpacingChange('tight')}>
+            <MenubarRadioGroup value={letterSpacing}>
+              <MenubarRadioItem value="tight" onClick={() => handleLetterSpacingChange('tight')}>
                 Tight
               </MenubarRadioItem>
-              <MenubarRadioItem value="normal" onClick={() => onLetterSpacingChange('normal')}>
+              <MenubarRadioItem value="normal" onClick={() => handleLetterSpacingChange('normal')}>
                 Normal
               </MenubarRadioItem>
-              <MenubarRadioItem value="wide" onClick={() => onLetterSpacingChange('wide')}>
+              <MenubarRadioItem value="wide" onClick={() => handleLetterSpacingChange('wide')}>
                 Wide
               </MenubarRadioItem>
-              <MenubarRadioItem value="wider" onClick={() => onLetterSpacingChange('wider')}>
+              <MenubarRadioItem value="wider" onClick={() => handleLetterSpacingChange('wider')}>
                 Wider
               </MenubarRadioItem>
             </MenubarRadioGroup>
@@ -69,17 +88,17 @@ const TextFormatting: React.FC<TextFormattingProps> = ({
           </MenubarTrigger>
           <MenubarContent>
             <MenubarLabel>Line Height</MenubarLabel>
-            <MenubarRadioGroup value="normal">
-              <MenubarRadioItem value="tight" onClick={() => onLineHeightChange('tight')}>
+            <MenubarRadioGroup value={lineHeight}>
+              <MenubarRadioItem value="tight" onClick={() => handleLineHeightChange('tight')}>
                 Tight
               </MenubarRadioItem>
-              <MenubarRadioItem value="normal" onClick={() => onLineHeightChange('normal')}>
+              <MenubarRadioItem value="normal" onClick={() => handleLineHeightChange('normal')}>
                 Normal
               </MenubarRadioItem>
-              <MenubarRadioItem value="relaxed" onClick={() => onLineHeightChange('relaxed')}>
+              <MenubarRadioItem value="relaxed" onClick={() => handleLineHeightChange('relaxed')}>
                 Relaxed
               </MenubarRadioItem>
-              <MenubarRadioItem value="loose" onClick={() => onLineHeightChange('loose')}>
+              <MenubarRadioItem value="loose" onClick={() => handleLineHeightChange('loose')}>
                 Loose
               </MenubarRadioItem>
             </MenubarRadioGroup>
@@ -92,17 +111,17 @@ const TextFormatting: React.FC<TextFormattingProps> = ({
           </MenubarTrigger>
           <MenubarContent>
             <MenubarLabel>Paragraph Spacing</MenubarLabel>
-            <MenubarRadioGroup value="normal">
-              <MenubarRadioItem value="tight" onClick={() => onParagraphSpacingChange('tight')}>
+            <MenubarRadioGroup value={paragraphSpacing}>
+              <MenubarRadioItem value="tight" onClick={() => handleParagraphSpacingChange('tight')}>
                 Tight
               </MenubarRadioItem>
-              <MenubarRadioItem value="normal" onClick={() => onParagraphSpacingChange('normal')}>
+              <MenubarRadioItem value="normal" onClick={() => handleParagraphSpacingChange('normal')}>
                 Normal
               </MenubarRadioItem>
-              <MenubarRadioItem value="relaxed" onClick={() => onParagraphSpacingChange('relaxed')}>
+              <MenubarRadioItem value="relaxed" onClick={() => handleParagraphSpacingChange('relaxed')}>
                 Relaxed
               </MenubarRadioItem>
-              <MenubarRadioItem value="loose" onClick={() => onParagraphSpacingChange('loose')}>
+              <MenubarRadioItem value="loose" onClick={() => handleParagraphSpacingChange('loose')}>
                 Loose
               </MenubarRadioItem>
             </MenubarRadioGroup>
