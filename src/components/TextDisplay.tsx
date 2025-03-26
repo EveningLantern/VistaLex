@@ -12,12 +12,22 @@ type TextDisplayProps = {
     underlineVerbs: boolean;
     underlineComplexWords: boolean;
   };
+  textFormatting?: {
+    letterSpacing: string;
+    lineHeight: string;
+    paragraphSpacing: string;
+  };
 };
 
 const TextDisplay = ({ 
   text, 
   colorTheme,
-  dyslexiaOptions
+  dyslexiaOptions,
+  textFormatting = {
+    letterSpacing: 'normal',
+    lineHeight: 'normal',
+    paragraphSpacing: 'normal'
+  }
 }: TextDisplayProps) => {
   const [processedHtml, setProcessedHtml] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -35,22 +45,25 @@ const TextDisplay = ({
       underlineComplexWords: dyslexiaOptions.underlineComplexWords
     });
     
-    // Split by newlines and wrap in paragraphs
+    // Split by newlines and wrap in paragraphs with spacing class
+    const paragraphClass = `mb-4 paragraph-spacing-${textFormatting.paragraphSpacing}`;
     const paragraphs = processedText.split('\n').map(para => 
-      para.trim() ? `<p class="mb-4">${para}</p>` : '<br />'
+      para.trim() ? `<p class="${paragraphClass}">${para}</p>` : '<br />'
     );
     
     setProcessedHtml(paragraphs.join(''));
-  }, [text, dyslexiaOptions]);
+  }, [text, dyslexiaOptions, textFormatting.paragraphSpacing]);
   
   return (
     <div className="w-full h-full">
       <div 
         ref={contentRef}
         className={cn(
-          "prose prose-lg max-w-none p-8 rounded-lg transition-all duration-300 animate-fade-in",
+          "prose prose-lg max-w-none p-8 rounded-lg transition-all duration-300 animate-fade-in text-content",
           dyslexiaOptions.useDyslexicFont && "dyslexia-friendly",
           colorTheme && colorTheme !== 'default' && colorTheme,
+          `letter-spacing-${textFormatting.letterSpacing}`,
+          `line-height-${textFormatting.lineHeight}`,
           "bg-white/80 backdrop-blur-sm shadow-sm border border-border/20"
         )}
         dangerouslySetInnerHTML={{ __html: processedHtml || '<p class="text-muted-foreground text-center italic">Enter or upload text to begin...</p>' }}

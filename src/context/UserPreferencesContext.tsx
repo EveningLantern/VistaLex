@@ -12,6 +12,11 @@ type UserPreferencesContextType = {
     underlineVerbs: boolean;
     underlineComplexWords: boolean;
   };
+  textFormatting: {
+    letterSpacing: string;
+    lineHeight: string;
+    paragraphSpacing: string;
+  };
   updateColorTheme: (theme: 'default' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'high-contrast') => void;
   updateAdhdMode: (enabled: boolean) => void;
   updateDyslexiaSettings: (settings: {
@@ -20,9 +25,20 @@ type UserPreferencesContextType = {
     underlineVerbs: boolean;
     underlineComplexWords: boolean;
   }) => void;
+  updateTextFormatting: (settings: {
+    letterSpacing: string;
+    lineHeight: string;
+    paragraphSpacing: string;
+  }) => void;
 };
 
-const defaultPreferences: UserAccessibilityPreferences = {
+const defaultPreferences: UserAccessibilityPreferences & { 
+  textFormatting: { 
+    letterSpacing: string;
+    lineHeight: string;
+    paragraphSpacing: string;
+  }
+} = {
   colorTheme: 'default',
   adhdMode: false,
   dyslexiaSettings: {
@@ -30,6 +46,11 @@ const defaultPreferences: UserAccessibilityPreferences = {
     boldFirstLetter: false,
     underlineVerbs: false,
     underlineComplexWords: false
+  },
+  textFormatting: {
+    letterSpacing: 'normal',
+    lineHeight: 'normal',
+    paragraphSpacing: 'normal'
   }
 };
 
@@ -37,19 +58,21 @@ const UserPreferencesContext = createContext<UserPreferencesContextType>({
   ...defaultPreferences,
   updateColorTheme: () => {},
   updateAdhdMode: () => {},
-  updateDyslexiaSettings: () => {}
+  updateDyslexiaSettings: () => {},
+  updateTextFormatting: () => {}
 });
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const { user, profile, updateAccessibilityPreferences } = useAuth();
-  const [preferences, setPreferences] = useState<UserAccessibilityPreferences>(defaultPreferences);
+  const [preferences, setPreferences] = useState<typeof defaultPreferences>(defaultPreferences);
 
   useEffect(() => {
     if (profile) {
       setPreferences({
         colorTheme: profile.color_theme,
         adhdMode: profile.adhd_mode,
-        dyslexiaSettings: profile.dyslexia_settings
+        dyslexiaSettings: profile.dyslexia_settings,
+        textFormatting: defaultPreferences.textFormatting // Initialize with defaults as this is a new feature
       });
     } else {
       setPreferences(defaultPreferences);
@@ -94,13 +117,25 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateTextFormatting = async (settings: {
+    letterSpacing: string;
+    lineHeight: string;
+    paragraphSpacing: string;
+  }) => {
+    setPreferences(prev => ({ ...prev, textFormatting: settings }));
+    
+    // Text formatting is stored locally only for now
+    // In a full implementation, we would store this in the user profile
+  };
+
   return (
     <UserPreferencesContext.Provider 
       value={{ 
         ...preferences, 
         updateColorTheme, 
         updateAdhdMode, 
-        updateDyslexiaSettings 
+        updateDyslexiaSettings,
+        updateTextFormatting
       }}
     >
       {children}

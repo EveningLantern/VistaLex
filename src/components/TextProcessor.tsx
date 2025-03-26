@@ -3,12 +3,14 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FileText, Text, Settings, LogOut } from 'lucide-react';
+import { FileText, Text, Settings, LogOut, Camera } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import AccessibilitySettings from '@/components/AccessibilitySettings';
 import TextDisplay from '@/components/TextDisplay';
 import ADHDMode from '@/components/ADHDMode';
 import ReadAloud from '@/components/ReadAloud';
+import TextFormatting from '@/components/TextFormatting';
+import ImageOCR from '@/components/ImageOCR';
 import { processADHDText } from '@/lib/textProcessing';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -22,6 +24,14 @@ const TextProcessor = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [activeLeftTab, setActiveLeftTab] = useState("text");
+  const [showImageOCR, setShowImageOCR] = useState(false);
+  
+  // Text formatting state
+  const [textFormatting, setTextFormatting] = useState({
+    letterSpacing: 'normal',
+    lineHeight: 'normal',
+    paragraphSpacing: 'normal'
+  });
   
   const { user, signOut } = useAuth();
   const { colorTheme, adhdMode, dyslexiaSettings } = useUserPreferences();
@@ -73,6 +83,19 @@ const TextProcessor = () => {
     }, 600);
   };
   
+  // Text formatting handlers
+  const handleLetterSpacingChange = (value: string) => {
+    setTextFormatting(prev => ({ ...prev, letterSpacing: value }));
+  };
+  
+  const handleLineHeightChange = (value: string) => {
+    setTextFormatting(prev => ({ ...prev, lineHeight: value }));
+  };
+  
+  const handleParagraphSpacingChange = (value: string) => {
+    setTextFormatting(prev => ({ ...prev, paragraphSpacing: value }));
+  };
+  
   // Apply color theme to body
   useEffect(() => {
     document.body.className = colorTheme;
@@ -110,6 +133,15 @@ const TextProcessor = () => {
                   className={showSettings ? "text-primary" : ""}
                 >
                   <Settings className="h-5 w-5" />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowImageOCR(true)}
+                  title="Extract text from image"
+                >
+                  <Camera className="h-5 w-5" />
                 </Button>
                 
                 {user ? (
@@ -168,6 +200,16 @@ const TextProcessor = () => {
           </Tabs>
         </div>
         
+        {/* Text Formatting Toolbar */}
+        {text && (
+          <TextFormatting 
+            onLetterSpacingChange={handleLetterSpacingChange}
+            onLineHeightChange={handleLineHeightChange}
+            onParagraphSpacingChange={handleParagraphSpacingChange}
+            onImageUploadClick={() => setShowImageOCR(true)}
+          />
+        )}
+        
         {/* Text-to-Speech Controls */}
         <div className="glass rounded-lg p-4 animate-fade-in">
           <h3 className="text-sm font-medium mb-3">Text-to-Speech</h3>
@@ -190,15 +232,25 @@ const TextProcessor = () => {
             isActive={adhdMode}
             colorTheme={colorTheme}
             dyslexiaOptions={dyslexiaSettings}
+            textFormatting={textFormatting}
           />
         ) : (
           <TextDisplay 
             text={text} 
             colorTheme={colorTheme}
             dyslexiaOptions={dyslexiaSettings}
+            textFormatting={textFormatting}
           />
         )}
       </div>
+      
+      {/* Image OCR Modal */}
+      {showImageOCR && (
+        <ImageOCR 
+          onTextExtracted={handleTextExtracted}
+          onClose={() => setShowImageOCR(false)}
+        />
+      )}
     </div>
   );
 };
