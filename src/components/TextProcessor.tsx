@@ -26,15 +26,8 @@ const TextProcessor = () => {
   const [activeLeftTab, setActiveLeftTab] = useState("text");
   const [showImageOCR, setShowImageOCR] = useState(false);
   
-  // Text formatting state
-  const [textFormatting, setTextFormatting] = useState({
-    letterSpacing: 'normal',
-    lineHeight: 'normal',
-    paragraphSpacing: 'normal'
-  });
-  
   const { user, signOut } = useAuth();
-  const { colorTheme, adhdMode, dyslexiaSettings } = useUserPreferences();
+  const { colorTheme, adhdMode, dyslexiaSettings, textFormatting, updateTextFormatting } = useUserPreferences();
 
   useEffect(() => {
     if (text) {
@@ -85,15 +78,24 @@ const TextProcessor = () => {
   
   // Text formatting handlers
   const handleLetterSpacingChange = (value: string) => {
-    setTextFormatting(prev => ({ ...prev, letterSpacing: value }));
+    updateTextFormatting({
+      ...textFormatting,
+      letterSpacing: value
+    });
   };
   
   const handleLineHeightChange = (value: string) => {
-    setTextFormatting(prev => ({ ...prev, lineHeight: value }));
+    updateTextFormatting({
+      ...textFormatting,
+      lineHeight: value
+    });
   };
   
   const handleParagraphSpacingChange = (value: string) => {
-    setTextFormatting(prev => ({ ...prev, paragraphSpacing: value }));
+    updateTextFormatting({
+      ...textFormatting,
+      paragraphSpacing: value
+    });
   };
   
   // Apply color theme to body

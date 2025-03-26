@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type ADHDModeProps = {
   words: string[];
@@ -92,6 +94,21 @@ const ADHDMode = ({
     ? 100 
     : Math.min(100, (currentIndex / (words.length - wordsPerGroup)) * 100);
   
+  // Get color classes for words based on the color theme
+  const getWordColors = (index: number) => {
+    const colors = {
+      default: ["text-blue-500", "text-indigo-600", "text-purple-500"],
+      protanopia: ["text-blue-600", "text-amber-700", "text-blue-800"],
+      deuteranopia: ["text-amber-600", "text-orange-700", "text-amber-800"],
+      tritanopia: ["text-red-600", "text-red-700", "text-red-800"],
+      "high-contrast": ["text-white", "text-white", "text-white"]
+    };
+    
+    const themeKey = colorTheme as keyof typeof colors;
+    const themeColors = colors[themeKey] || colors.default;
+    return themeColors[index % themeColors.length];
+  };
+  
   return (
     <div className={cn(
       "flex flex-col items-center justify-center min-h-[60vh] p-8 rounded-lg transition-all duration-300",
@@ -114,7 +131,7 @@ const ADHDMode = ({
               "adhd-word",
               dyslexiaOptions.useDyslexicFont && "font-['OpenDyslexic']",
               dyslexiaOptions.boldFirstLetter && "first-letter:font-bold",
-              colorTheme === "high-contrast" ? "text-white" : "text-primary"
+              colorTheme === "high-contrast" ? "text-white" : getWordColors(index)
             )}
             style={{
               animationDelay: `${index * 0.2}s`,
@@ -126,42 +143,43 @@ const ADHDMode = ({
       </div>
       
       <div className="flex gap-4 mt-4">
-        <button 
+        <Button 
           onClick={handlePrevGroup}
           disabled={currentIndex === 0}
+          variant={colorTheme === "high-contrast" ? "outline" : "secondary"}
+          size="icon"
           className={cn(
-            "px-4 py-2 rounded-full bg-primary/20 text-primary-foreground",
-            "hover:bg-primary/30 disabled:opacity-50 disabled:cursor-not-allowed",
-            colorTheme === "high-contrast" && "bg-white/30 text-white hover:bg-white/40"
+            "rounded-full",
+            colorTheme === "high-contrast" && "border-white text-white hover:bg-white/20"
           )}
         >
-          Previous
-        </button>
+          <SkipBack className="h-5 w-5" />
+        </Button>
         
-        <button 
+        <Button 
           onClick={togglePause}
+          variant={colorTheme === "high-contrast" ? "outline" : "secondary"}
+          size="icon"
           className={cn(
-            "px-4 py-2 rounded-full",
-            isPaused 
-              ? "bg-green-500/20 text-green-700 hover:bg-green-500/30" 
-              : "bg-amber-500/20 text-amber-700 hover:bg-amber-500/30",
-            colorTheme === "high-contrast" && "bg-white/30 text-white hover:bg-white/40"
+            "rounded-full",
+            colorTheme === "high-contrast" && "border-white text-white hover:bg-white/20"
           )}
         >
-          {isPaused ? "Play" : "Pause"}
-        </button>
+          {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+        </Button>
         
-        <button 
+        <Button 
           onClick={handleNextGroup}
           disabled={currentIndex + wordsPerGroup >= words.length}
+          variant={colorTheme === "high-contrast" ? "outline" : "secondary"}
+          size="icon"
           className={cn(
-            "px-4 py-2 rounded-full bg-primary/20 text-primary-foreground",
-            "hover:bg-primary/30 disabled:opacity-50 disabled:cursor-not-allowed",
-            colorTheme === "high-contrast" && "bg-white/30 text-white hover:bg-white/40"
+            "rounded-full",
+            colorTheme === "high-contrast" && "border-white text-white hover:bg-white/20"
           )}
         >
-          Next
-        </button>
+          <SkipForward className="h-5 w-5" />
+        </Button>
       </div>
     </div>
   );
