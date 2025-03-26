@@ -1,9 +1,8 @@
-
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { 
   Type, 
-  TextAlignJustifyCenter,
+  AlignCenter,
   GanttChartSquare,
   Camera
 } from 'lucide-react';
@@ -114,7 +113,7 @@ const TextFormatting = ({
         {/* Line Height */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <TextAlignJustifyCenter className="h-4 w-4" />
+            <AlignCenter className="h-4 w-4" />
             <Label className="text-xs">Line Height</Label>
           </div>
           
