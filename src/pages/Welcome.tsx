@@ -20,7 +20,7 @@ const Welcome = () => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/');
+    navigate('/app');
   };
 
   return (

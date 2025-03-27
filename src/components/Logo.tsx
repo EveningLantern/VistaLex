@@ -17,7 +17,7 @@ const Logo = ({ className, size = "medium" }: LogoProps) => {
     <div className={cn("flex items-center space-x-2", className)}>
       <div className="relative">
         <img 
-          src="/favicon.ico" 
+          src="/lovable-uploads/c24a0dfe-0812-4751-8c2a-8b40cf4c163b.png" 
           alt="VistaLex Logo" 
           className={cn(sizeClass[size])}
         />
