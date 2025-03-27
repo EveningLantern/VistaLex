@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import Logo from './Logo';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -22,14 +23,7 @@ const Header = () => {
         : "py-5 bg-transparent"
     )}>
       <div className="container flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">V</span>
-          </div>
-          <h1 className="text-xl font-medium">
-            <span className="font-bold">Vista</span>Lex
-          </h1>
-        </div>
+        <Logo />
         <p className="text-sm text-muted-foreground italic hidden md:block animate-fade-in">
           A Clear Vision For Text Accessibility
         </p>
