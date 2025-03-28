@@ -50,9 +50,14 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
     setProgress(10);
     
     try {
-      // Different processing stages
+      // Different processing stages with better feedback
       if (file.type === 'application/pdf') {
-        setProcessingStage('Extracting text from PDF...');
+        setProcessingStage('Analyzing PDF document...');
+        // Progress simulation for better UX
+        setTimeout(() => {
+          setProgress(20);
+          setProcessingStage('Extracting text from PDF pages...');
+        }, 300);
       } else if (file.type.includes('word')) {
         setProcessingStage('Extracting text from Word document...');
       } else {
@@ -62,26 +67,53 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
       // Initial processing started
       setProgress(30);
       
-      // For PDFs, show extra stages for OCR if needed
-      const onProgressUpdate = (stage: string, percent: number) => {
-        setProcessingStage(stage);
-        setProgress(percent);
-      };
-      
-      // Use our enhanced utility to extract text from the file
-      const extractedText = await extractTextFromFile(file);
-      
-      // Processing complete
-      setProgress(100);
-      setProcessingStage('Processing complete');
-      
-      onTextExtracted(extractedText);
-      toast.success('File processed successfully');
+      // Simulate additional progress for PDF files which take longer
+      if (file.type === 'application/pdf') {
+        const simulateProgress = () => {
+          setProgress(prev => {
+            if (prev < 80) {
+              return prev + 10;
+            }
+            return prev;
+          });
+        };
+        
+        // Simulate progress at intervals
+        const interval = setInterval(simulateProgress, 500);
+        
+        // Use our enhanced utility to extract text from the file
+        const extractedText = await extractTextFromFile(file);
+        
+        clearInterval(interval);
+        
+        // Processing complete
+        setProgress(100);
+        setProcessingStage('Processing complete');
+        
+        onTextExtracted(extractedText);
+        
+        if (extractedText.includes('No text could be extracted')) {
+          toast.warning('Limited text extraction', {
+            description: 'The PDF may be scanned or have limited machine-readable text.'
+          });
+        } else {
+          toast.success('Document processed successfully', {
+            description: file.type === 'application/pdf' ? 'PDF text extracted and displayed' : 'Document processed successfully'
+          });
+        }
+      } else {
+        // For non-PDF files
+        const extractedText = await extractTextFromFile(file);
+        setProgress(100);
+        setProcessingStage('Processing complete');
+        onTextExtracted(extractedText);
+        toast.success('File processed successfully');
+      }
     } catch (error) {
-      toast.error('Failed to process file', {
-        description: 'There was an error processing your file.'
-      });
       console.error('Error processing file:', error);
+      toast.error('Failed to process file', {
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
     } finally {
       setTimeout(() => {
         setIsProcessing(false);

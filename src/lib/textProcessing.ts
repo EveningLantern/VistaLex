@@ -1,3 +1,4 @@
+
 // Function to process text for dyslexia mode
 export function processDyslexiaText(text: string, options: { 
   boldFirstLetter: boolean, 
@@ -50,11 +51,11 @@ import * as pdfjs from 'pdfjs-dist';
 
 // This ensures PDF.js works in both browser and worker environments
 if (typeof window !== 'undefined') {
-  // Use import.meta.url to make the worker URL relative to this module
+  // Use CDN for the worker to ensure it's accessible
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 }
 
-// Improved PDF text extraction function
+// Enhanced PDF text extraction function with better handling for book PDFs
 export async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -67,44 +68,92 @@ export async function extractTextFromPDF(file: File): Promise<string> {
         }
         
         try {
-          // Use pdfjs directly for text extraction
+          console.log("Starting PDF extraction...");
+          // Use pdfjs for text extraction
           const pdfData = new Uint8Array(event.target.result as ArrayBuffer);
+          
+          // Load the PDF document
+          console.log("Loading PDF document...");
           const loadingTask = pdfjs.getDocument({ data: pdfData });
           const pdf = await loadingTask.promise;
+          console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
           
           let fullText = '';
           
-          // Extract text from each page
+          // Enhanced text extraction from each page with better handling for book layouts
           for (let i = 1; i <= pdf.numPages; i++) {
+            console.log(`Processing page ${i} of ${pdf.numPages}...`);
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
             
-            // Extract text from each item on the page
+            // Enhanced text extraction with better space handling
             const pageText = textContent.items
               // @ts-ignore - type definition mismatch but works at runtime
-              .map(item => item.str || '')
-              .join(' ');
+              .map((item, idx, arr) => {
+                // Get the current item's text
+                const text = item.str || '';
+                
+                // Add appropriate spacing based on positioning
+                // This helps with book layouts that might have columns or special formatting
+                if (idx > 0 && arr[idx - 1]) {
+                  const prevItem = arr[idx - 1];
+                  // @ts-ignore
+                  const prevTransform = prevItem.transform || [0, 0, 0, 0, 0, 0];
+                  // @ts-ignore
+                  const currTransform = item.transform || [0, 0, 0, 0, 0, 0];
+                  
+                  // If there's a significant horizontal or vertical position change,
+                  // add appropriate spacing
+                  // @ts-ignore
+                  const xDiff = Math.abs(currTransform[4] - prevTransform[4]);
+                  // @ts-ignore
+                  const yDiff = Math.abs(currTransform[5] - prevTransform[5]);
+                  
+                  // New line detection (significant y position change)
+                  if (yDiff > 5) {
+                    return `\n${text}`;
+                  }
+                  
+                  // New paragraph or column detection (significant x position change)
+                  // @ts-ignore
+                  if (currTransform[4] < prevTransform[4] && xDiff > 50) {
+                    return `\n\n${text}`;
+                  }
+                }
+                return text;
+              })
+              .join(' ')
+              // Clean up excessive whitespace
+              .replace(/\s+/g, ' ')
+              .trim();
               
             fullText += pageText + '\n\n';
           }
           
-          if (fullText.trim()) {
-            resolve(fullText);
+          // Clean up the final text for better readability
+          const cleanedText = fullText
+            .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with just two
+            .trim();
+          
+          if (cleanedText.trim()) {
+            console.log("PDF extraction completed successfully!");
+            resolve(cleanedText);
           } else {
             console.log("No text found in PDF using direct extraction");
             resolve("No text could be extracted from this PDF. It might be a scanned document requiring OCR.");
           }
         } catch (directExtractError) {
           console.error("Error in PDF extraction:", directExtractError);
-          reject(new Error('Failed to extract text from PDF'));
+          reject(new Error('Failed to extract text from PDF: ' + directExtractError.message));
         }
       } catch (error) {
         console.error('Error parsing PDF:', error);
-        reject(new Error('Failed to parse PDF file'));
+        reject(new Error('Failed to parse PDF file: ' + error.message));
       }
     };
     
-    reader.onerror = () => {
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error);
       reject(new Error('Failed to read PDF file'));
     };
     
