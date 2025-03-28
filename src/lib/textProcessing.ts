@@ -1,4 +1,3 @@
-
 // Function to process text for dyslexia mode
 export function processDyslexiaText(text: string, options: { 
   boldFirstLetter: boolean, 
@@ -46,9 +45,18 @@ export function processADHDText(text: string) {
   return text.split(/\s+/).filter(word => word.trim().length > 0);
 }
 
-// Import the required typings from pdfjs-dist
+// Import pdfjs directly to ensure it's properly loaded
 import * as pdfjs from 'pdfjs-dist';
 import { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
+
+// Set the worker source once at module level
+// This ensures the worker is properly loaded before any PDF processing
+if (typeof window !== 'undefined') {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.js',
+    import.meta.url
+  ).toString();
+}
 
 // Enhanced PDF text extraction with OCR fallback for scanned documents
 export async function extractTextFromPDF(file: File): Promise<string> {
@@ -104,6 +112,10 @@ async function processScannedPDFWithOCR(file: File): Promise<string> {
     // First convert PDF to images
     const pdfImages = await pdfToImages(file);
     
+    if (pdfImages.length === 0) {
+      return 'Error converting PDF to images. Please try a different file.';
+    }
+    
     // Then process images with Tesseract OCR
     const { createWorker } = await import('tesseract.js');
     const worker = await createWorker();
@@ -121,7 +133,7 @@ async function processScannedPDFWithOCR(file: File): Promise<string> {
       await worker.terminate();
     }
     
-    return fullText;
+    return fullText || 'No text could be extracted from the PDF.';
   } catch (error) {
     console.error('OCR processing error:', error);
     return 'Error processing document with OCR. Please try a different file.';
@@ -131,15 +143,15 @@ async function processScannedPDFWithOCR(file: File): Promise<string> {
 // Convert PDF to array of image URLs
 async function pdfToImages(file: File): Promise<string[]> {
   try {
-    // Load pdfjs library
-    const pdfjsLib = await import('pdfjs-dist');
-    // Set the worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-    
+    // Create object URL for the file
     const fileURL = URL.createObjectURL(file);
-    const pdf = await pdfjsLib.getDocument(fileURL).promise as PDFDocumentProxy;
+    
+    // Load the PDF document
+    const loadingTask = pdfjs.getDocument(fileURL);
+    const pdf = await loadingTask.promise as PDFDocumentProxy;
     const images: string[] = [];
     
+    // Process each page
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const viewport = page.getViewport({ scale: 2 });
@@ -151,18 +163,25 @@ async function pdfToImages(file: File): Promise<string[]> {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       
-      await page.render({
-        canvasContext: context,
-        viewport: viewport
-      }).promise;
-      
-      // Convert canvas to blob URL
-      const blob = await new Promise<Blob>((resolve) => 
-        canvas.toBlob((b) => resolve(b as Blob), 'image/png')
-      );
-      images.push(URL.createObjectURL(blob));
+      try {
+        // Render the page to the canvas
+        await page.render({
+          canvasContext: context,
+          viewport: viewport
+        }).promise;
+        
+        // Convert canvas to blob URL
+        const blob = await new Promise<Blob>((resolve) => 
+          canvas.toBlob((b) => resolve(b as Blob), 'image/png')
+        );
+        
+        images.push(URL.createObjectURL(blob));
+      } catch (renderError) {
+        console.error(`Error rendering page ${i}:`, renderError);
+      }
     }
     
+    // Clean up
     URL.revokeObjectURL(fileURL);
     return images;
   } catch (error) {
