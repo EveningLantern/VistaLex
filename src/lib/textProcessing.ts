@@ -1,4 +1,3 @@
-
 // Function to process text for dyslexia mode
 export function processDyslexiaText(text: string, options: { 
   boldFirstLetter: boolean, 
@@ -127,12 +126,11 @@ async function processScannedPDFWithOCR(file: File): Promise<string> {
 // Convert PDF to array of image URLs
 async function pdfToImages(file: File): Promise<string[]> {
   try {
-    // Import PDF.js dynamically
-    const pdfjsLib = await import('pdfjs-dist');
+    // Set the worker source
     pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
     
     const fileURL = URL.createObjectURL(file);
-    const pdf = await pdfjsLib.getDocument(fileURL).promise;
+    const pdf: PDFDocumentProxy = await pdfjsLib.getDocument(fileURL).promise;
     const images: string[] = [];
     
     for (let i = 1; i <= pdf.numPages; i++) {
