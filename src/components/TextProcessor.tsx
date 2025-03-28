@@ -110,11 +110,11 @@ const TextProcessor = () => {
   return (
     <div className={cn(
       "container mx-auto p-4 md:p-6 pt-24",
-      "grid grid-cols-1 lg:grid-cols-3 gap-6 h-full",
+      "grid grid-cols-1 lg:grid-cols-12 gap-6 h-full",
       colorTheme
     )}>
-      {/* Left Column - Input and Settings */}
-      <div className="lg:col-span-1 space-y-6">
+      {/* Left Column - Input */}
+      <div className="lg:col-span-3 space-y-6">
         <div className="flex items-center justify-between">
           <Tabs value={activeLeftTab} onValueChange={setActiveLeftTab} className="w-full">
             <div className="flex justify-between items-center mb-4">
@@ -202,22 +202,6 @@ const TextProcessor = () => {
           </Tabs>
         </div>
         
-        {/* Text Formatting Toolbar */}
-        {text && (
-          <TextFormatting 
-            onLetterSpacingChange={handleLetterSpacingChange}
-            onLineHeightChange={handleLineHeightChange}
-            onParagraphSpacingChange={handleParagraphSpacingChange}
-            onImageUploadClick={() => setShowImageOCR(true)}
-          />
-        )}
-        
-        {/* Text-to-Speech Controls */}
-        <div className="glass rounded-lg p-4 animate-fade-in">
-          <h3 className="text-sm font-medium mb-3">Text-to-Speech</h3>
-          <ReadAloud text={text} />
-        </div>
-        
         {/* Settings Panel - Show only when settings button is clicked */}
         {showSettings && (
           <div className="animate-scale-in">
@@ -226,8 +210,8 @@ const TextProcessor = () => {
         )}
       </div>
       
-      {/* Right Column - Text Display */}
-      <div className="lg:col-span-2 min-h-[60vh]">
+      {/* Middle Column - Text Display */}
+      <div className="lg:col-span-6 min-h-[60vh]">
         {adhdMode ? (
           <ADHDMode 
             words={processedWords} 
@@ -244,6 +228,25 @@ const TextProcessor = () => {
             textFormatting={textFormatting}
           />
         )}
+      </div>
+      
+      {/* Right Column - Text Formatting and Text-to-Speech */}
+      <div className="lg:col-span-3 space-y-6">
+        {/* Text Formatting Toolbar */}
+        {text && (
+          <TextFormatting 
+            onLetterSpacingChange={handleLetterSpacingChange}
+            onLineHeightChange={handleLineHeightChange}
+            onParagraphSpacingChange={handleParagraphSpacingChange}
+            onImageUploadClick={() => setShowImageOCR(true)}
+          />
+        )}
+        
+        {/* Text-to-Speech Controls */}
+        <div className="glass rounded-lg p-4 animate-fade-in">
+          <h3 className="text-sm font-medium mb-3">Text-to-Speech</h3>
+          <ReadAloud text={text} />
+        </div>
       </div>
       
       {/* Image OCR Modal */}
