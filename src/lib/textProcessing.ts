@@ -1,3 +1,4 @@
+
 // Function to process text for dyslexia mode
 export function processDyslexiaText(text: string, options: { 
   boldFirstLetter: boolean, 
@@ -44,6 +45,10 @@ export function processADHDText(text: string) {
   // Split the text into words and filter out empty strings
   return text.split(/\s+/).filter(word => word.trim().length > 0);
 }
+
+// Import the required typings from pdfjs-dist
+import * as pdfjs from 'pdfjs-dist';
+import { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 
 // Enhanced PDF text extraction with OCR fallback for scanned documents
 export async function extractTextFromPDF(file: File): Promise<string> {
@@ -126,11 +131,13 @@ async function processScannedPDFWithOCR(file: File): Promise<string> {
 // Convert PDF to array of image URLs
 async function pdfToImages(file: File): Promise<string[]> {
   try {
+    // Load pdfjs library
+    const pdfjsLib = await import('pdfjs-dist');
     // Set the worker source
     pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
     
     const fileURL = URL.createObjectURL(file);
-    const pdf: PDFDocumentProxy = await pdfjsLib.getDocument(fileURL).promise;
+    const pdf = await pdfjsLib.getDocument(fileURL).promise as PDFDocumentProxy;
     const images: string[] = [];
     
     for (let i = 1; i <= pdf.numPages; i++) {
