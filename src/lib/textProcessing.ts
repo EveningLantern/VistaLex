@@ -45,52 +45,58 @@ export function processADHDText(text: string) {
   return text.split(/\s+/).filter(word => word.trim().length > 0);
 }
 
-// Import pdfjs directly to ensure it's properly loaded
+// Import pdfjs directly and set the worker source
 import * as pdfjs from 'pdfjs-dist';
-import { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 
-// Set the worker source once at module level
-// This ensures the worker is properly loaded before any PDF processing
+// This ensures PDF.js works in both browser and worker environments
 if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.js',
-    import.meta.url
-  ).toString();
+  // Use import.meta.url to make the worker URL relative to this module
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 }
 
-// Enhanced PDF text extraction with OCR fallback for scanned documents
+// Improved PDF text extraction function
 export async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
     reader.onload = async (event) => {
       try {
-        if (event.target?.result) {
-          // First try to extract text directly
-          try {
-            // Dynamic import of pdf-parse
-            const pdfParse = await import('pdf-parse');
-            const pdfData = new Uint8Array(event.target.result as ArrayBuffer);
-            const result = await pdfParse.default(pdfData);
-            
-            // If we got meaningful text, return it
-            if (result.text.trim()) {
-              resolve(result.text);
-              return;
-            }
-            
-            console.log("No text found in PDF using direct extraction, attempting OCR...");
-            // If no text found, process using OCR
-            const extractedText = await processScannedPDFWithOCR(file);
-            resolve(extractedText);
-          } catch (directExtractError) {
-            console.error("Error in direct PDF extraction:", directExtractError);
-            // Fallback to OCR if direct extraction fails
-            const extractedText = await processScannedPDFWithOCR(file);
-            resolve(extractedText);
-          }
-        } else {
+        if (!event.target?.result) {
           reject(new Error('Failed to read PDF file'));
+          return;
+        }
+        
+        try {
+          // Use pdfjs directly for text extraction
+          const pdfData = new Uint8Array(event.target.result as ArrayBuffer);
+          const loadingTask = pdfjs.getDocument({ data: pdfData });
+          const pdf = await loadingTask.promise;
+          
+          let fullText = '';
+          
+          // Extract text from each page
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            
+            // Extract text from each item on the page
+            const pageText = textContent.items
+              // @ts-ignore - type definition mismatch but works at runtime
+              .map(item => item.str || '')
+              .join(' ');
+              
+            fullText += pageText + '\n\n';
+          }
+          
+          if (fullText.trim()) {
+            resolve(fullText);
+          } else {
+            console.log("No text found in PDF using direct extraction");
+            resolve("No text could be extracted from this PDF. It might be a scanned document requiring OCR.");
+          }
+        } catch (directExtractError) {
+          console.error("Error in PDF extraction:", directExtractError);
+          reject(new Error('Failed to extract text from PDF'));
         }
       } catch (error) {
         console.error('Error parsing PDF:', error);
@@ -104,90 +110,6 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     
     reader.readAsArrayBuffer(file);
   });
-}
-
-// Process scanned PDF using OCR
-async function processScannedPDFWithOCR(file: File): Promise<string> {
-  try {
-    // First convert PDF to images
-    const pdfImages = await pdfToImages(file);
-    
-    if (pdfImages.length === 0) {
-      return 'Error converting PDF to images. Please try a different file.';
-    }
-    
-    // Then process images with Tesseract OCR
-    const { createWorker } = await import('tesseract.js');
-    const worker = await createWorker();
-    await worker.loadLanguage('eng');
-    await worker.initialize('eng');
-    
-    let fullText = '';
-    try {
-      for (const img of pdfImages) {
-        const { data: { text } } = await worker.recognize(img);
-        fullText += text + '\n';
-        URL.revokeObjectURL(img);
-      }
-    } finally {
-      await worker.terminate();
-    }
-    
-    return fullText || 'No text could be extracted from the PDF.';
-  } catch (error) {
-    console.error('OCR processing error:', error);
-    return 'Error processing document with OCR. Please try a different file.';
-  }
-}
-
-// Convert PDF to array of image URLs
-async function pdfToImages(file: File): Promise<string[]> {
-  try {
-    // Create object URL for the file
-    const fileURL = URL.createObjectURL(file);
-    
-    // Load the PDF document
-    const loadingTask = pdfjs.getDocument(fileURL);
-    const pdf = await loadingTask.promise as PDFDocumentProxy;
-    const images: string[] = [];
-    
-    // Process each page
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 2 });
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      
-      if (!context) continue;
-      
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      try {
-        // Render the page to the canvas
-        await page.render({
-          canvasContext: context,
-          viewport: viewport
-        }).promise;
-        
-        // Convert canvas to blob URL
-        const blob = await new Promise<Blob>((resolve) => 
-          canvas.toBlob((b) => resolve(b as Blob), 'image/png')
-        );
-        
-        images.push(URL.createObjectURL(blob));
-      } catch (renderError) {
-        console.error(`Error rendering page ${i}:`, renderError);
-      }
-    }
-    
-    // Clean up
-    URL.revokeObjectURL(fileURL);
-    return images;
-  } catch (error) {
-    console.error('Error converting PDF to images:', error);
-    return [];
-  }
 }
 
 // Extract text from DOCX file
