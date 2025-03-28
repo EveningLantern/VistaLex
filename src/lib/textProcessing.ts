@@ -55,6 +55,11 @@ if (typeof window !== 'undefined') {
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 }
 
+// Type guard to check if an object is a TextItem with a str property
+function isTextItem(item: any): item is { str: string } {
+  return item && typeof item.str === 'string';
+}
+
 // Enhanced PDF text extraction function with better handling for book PDFs
 export async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -88,8 +93,10 @@ export async function extractTextFromPDF(file: File): Promise<string> {
             
             // Enhanced text extraction with better space handling
             const pageText = textContent.items
-              // @ts-ignore - type definition mismatch but works at runtime
               .map((item, idx, arr) => {
+                // Check if the item has the str property (TextItem vs TextMarkedContent)
+                if (!isTextItem(item)) return '';
+                
                 // Get the current item's text
                 const text = item.str || '';
                 
@@ -97,16 +104,24 @@ export async function extractTextFromPDF(file: File): Promise<string> {
                 // This helps with book layouts that might have columns or special formatting
                 if (idx > 0 && arr[idx - 1]) {
                   const prevItem = arr[idx - 1];
-                  // @ts-ignore
-                  const prevTransform = prevItem.transform || [0, 0, 0, 0, 0, 0];
-                  // @ts-ignore
-                  const currTransform = item.transform || [0, 0, 0, 0, 0, 0];
+                  
+                  // Skip if previous item doesn't have transform property
+                  if (!isTextItem(prevItem) || !('transform' in prevItem) || !('transform' in item)) {
+                    return text;
+                  }
+                  
+                  // Safe access to transform properties
+                  const prevTransform = ('transform' in prevItem) ? prevItem.transform : [0, 0, 0, 0, 0, 0];
+                  const currTransform = ('transform' in item) ? item.transform : [0, 0, 0, 0, 0, 0];
+                  
+                  if (!prevTransform || !currTransform || 
+                      !Array.isArray(prevTransform) || !Array.isArray(currTransform)) {
+                    return text;
+                  }
                   
                   // If there's a significant horizontal or vertical position change,
                   // add appropriate spacing
-                  // @ts-ignore
                   const xDiff = Math.abs(currTransform[4] - prevTransform[4]);
-                  // @ts-ignore
                   const yDiff = Math.abs(currTransform[5] - prevTransform[5]);
                   
                   // New line detection (significant y position change)
@@ -115,7 +130,6 @@ export async function extractTextFromPDF(file: File): Promise<string> {
                   }
                   
                   // New paragraph or column detection (significant x position change)
-                  // @ts-ignore
                   if (currTransform[4] < prevTransform[4] && xDiff > 50) {
                     return `\n\n${text}`;
                   }
