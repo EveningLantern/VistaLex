@@ -54,11 +54,13 @@ This application provides:
 - Dyslexia-friendly text formatting
 - Text-to-speech capabilities
 
-## License
-
-[Add your license information here]
 
 ## Contact
 
 For any inquiries or support, please contact the development team.
-```
+
+[Sayandeep Saha](mailto:sayandeep123saha@gmail.com)
+[Sayani Pal](mailto:sayani.pal.cse.2022@tint.edu.in)
+[Suraj Kumar Biswas](mailto:surajkumar.biswas.cse.2022@tint.edu.in)
+[Sayanika Raha](mailto:sayanika.raha.cse.2022@tint.edu.in-)
+
