@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Logo from './Logo';
+import AttentionTracker from './AttentionTracker';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -24,9 +25,12 @@ const Header = () => {
     )}>
       <div className="container flex items-center justify-between">
         <Logo />
-        <p className="text-sm text-muted-foreground italic hidden md:block animate-fade-in">
-          A Clear Vision For Text Accessibility
-        </p>
+        <div className="flex items-center gap-4">
+          <AttentionTracker />
+          <p className="text-sm text-muted-foreground italic hidden md:block animate-fade-in">
+            A Clear Vision For Text Accessibility
+          </p>
+        </div>
       </div>
     </header>
   );
