@@ -1,8 +1,8 @@
 
 // Configuration constants for Gemini API
 const GEMINI_CONFIG = {
-  apiEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-  apiKey: '03c8bfe7aafc4eddb8ee3246003c4d9d.2sv2sJ6DGT34oDVi',
+  apiEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+  apiKey: 'AIzaSyA98M3QYhUZm_UMok52r6XsAk1UJoPSq_Y',
   maxTextLength: 30000,
   generationConfig: {
     temperature: 0.2,
@@ -11,6 +11,19 @@ const GEMINI_CONFIG = {
     maxOutputTokens: 1024,
   }
 };
+
+/**
+ * Validates the input text before processing
+ * @param text - Text to be validated
+ * @returns Validation result message or null if valid
+ */
+function validateInput(text: string): string | null {
+  if (!text || text.trim().length === 0) {
+    return "No text to summarize";
+  }
+  
+  return null;
+}
 
 /**
  * Creates the request body for the Gemini API
@@ -28,7 +41,7 @@ function createGeminiRequestBody(text: string) {
       {
         parts: [
           {
-            text: `Please provide a concise summary of the following text, highlighting the main points and key information:\n\n${truncatedText}`
+            text: `Summarize the following with beautiful emojis:\n\n${truncatedText}`
           }
         ]
       }
@@ -89,19 +102,6 @@ function handleSummarizationError(error: unknown): string {
   }
   
   return 'Error summarizing text: Unknown error occurred';
-}
-
-/**
- * Validates the input text before processing
- * @param text - Text to be validated
- * @returns Validation result message or null if valid
- */
-function validateInput(text: string): string | null {
-  if (!text || text.trim().length === 0) {
-    return "No text to summarize";
-  }
-  
-  return null;
 }
 
 /**
