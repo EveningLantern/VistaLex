@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FileText, Text, Settings, LogOut, Camera } from 'lucide-react';
+import { FileText, Text, Settings, LogOut, Camera, BookOpen } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import AccessibilitySettings from '@/components/AccessibilitySettings';
 import TextDisplay from '@/components/TextDisplay';
@@ -12,6 +12,7 @@ import ReadAloud from '@/components/ReadAloud';
 import TextFormatting from '@/components/TextFormatting';
 import ImageOCR from '@/components/ImageOCR';
 import { processADHDText } from '@/lib/textProcessing';
+import { summarizeTextWithGemini } from '@/lib/summarizeText';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -25,6 +26,7 @@ const TextProcessor = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [activeLeftTab, setActiveLeftTab] = useState("text");
   const [showImageOCR, setShowImageOCR] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   
   const { user, signOut } = useAuth();
   const { colorTheme, adhdMode, dyslexiaSettings, textFormatting, updateTextFormatting } = useUserPreferences();
@@ -57,6 +59,35 @@ const TextProcessor = () => {
   
   const handleToggleSettings = () => {
     setShowSettings(!showSettings);
+  };
+  
+  const handleSummarize = async () => {
+    if (!text.trim()) {
+      toast.warning('No text to summarize', {
+        description: 'Please enter or upload some text first'
+      });
+      return;
+    }
+    
+    setIsSummarizing(true);
+    toast.info('Summarizing text...', {
+      description: 'This may take a moment depending on the length of the text'
+    });
+    
+    try {
+      const summary = await summarizeTextWithGemini(text);
+      setText(summary);
+      toast.success('Text summarized successfully', {
+        description: 'The original text has been replaced with a summary'
+      });
+    } catch (error) {
+      console.error('Error during summarization:', error);
+      toast.error('Failed to summarize text', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setIsSummarizing(false);
+    }
   };
   
   const processText = () => {
@@ -176,11 +207,11 @@ const TextProcessor = () => {
                     value={text}
                     onChange={handleTextChange}
                   />
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button 
                       onClick={processText} 
                       disabled={!text.trim() || isProcessing}
-                      className="w-full"
+                      className="flex-1 min-w-[120px]"
                     >
                       {isProcessing ? 'Processing...' : 'Process Text'}
                     </Button>
@@ -188,15 +219,44 @@ const TextProcessor = () => {
                       variant="outline" 
                       onClick={handleClearText}
                       disabled={!text.trim()}
+                      className="flex-grow-0"
                     >
                       Clear
                     </Button>
                   </div>
+                  
+                  {/* Summarize Button */}
+                  {text.trim() && (
+                    <Button
+                      onClick={handleSummarize}
+                      disabled={isSummarizing}
+                      className="w-full flex items-center gap-2"
+                      variant="secondary"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      {isSummarizing ? 'Summarizing...' : 'Summarize Text'}
+                    </Button>
+                  )}
                 </div>
               </TabsContent>
               
               <TabsContent value="file" className="mt-0">
                 <FileUpload onTextExtracted={handleTextExtracted} />
+                
+                {/* Show Summarize Button here too if there's extracted text */}
+                {text.trim() && (
+                  <div className="mt-4">
+                    <Button
+                      onClick={handleSummarize}
+                      disabled={isSummarizing}
+                      className="w-full flex items-center gap-2"
+                      variant="secondary"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      {isSummarizing ? 'Summarizing...' : 'Summarize Text'}
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
             </div>
           </Tabs>
