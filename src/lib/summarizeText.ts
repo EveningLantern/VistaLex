@@ -2,8 +2,8 @@
 // Function to summarize text using Google's Gemini API
 export async function summarizeTextWithGemini(text: string): Promise<string> {
   try {
-    // API key for Gemini (Note: In production, this should be stored securely)
-    const apiKey = 'AIzaSyBt74-KD_u2evlPs4fdmmslZrl-0LpfkVQ';
+    // Updated API key for Gemini
+    const apiKey = '03c8bfe7aafc4eddb8ee3246003c4d9d.2sv2sJ6DGT34oDVi';
     
     // Check if there's text to summarize
     if (!text || text.trim().length === 0) {
@@ -61,3 +61,4 @@ export async function summarizeTextWithGemini(text: string): Promise<string> {
     return `Error summarizing text: ${error instanceof Error ? error.message : 'Unknown error'}`;
   }
 }
+
