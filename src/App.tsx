@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
+import EmotionDetectionPage from "./app/emotion-detection/page";
 import { AuthProvider } from "./context/AuthContext";
 import UserPreferencesProvider from "./context/UserPreferencesContext";
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Welcome />} />
             <Route path="/app" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/emotion-detection" element={<EmotionDetectionPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

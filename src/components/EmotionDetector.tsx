@@ -2,10 +2,10 @@
 'use client';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { detectEmotion } from '@/lib/api';
 import { Button } from './ui/button';
 import { Smile, Camera, Eye, EyeOff } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { loadFaceApiModels, detectFaceExpressions } from '@/lib/faceApi';
 
 export function EmotionDetector() {
   const webcamRef = useRef<Webcam>(null);
@@ -14,10 +14,24 @@ export function EmotionDetector() {
   const [error, setError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [isRealtimeMode, setIsRealtimeMode] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup interval on unmount
+  // Load face-api models on component mount
   useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await loadFaceApiModels();
+        setModelsLoaded(true);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load facial recognition models');
+        console.error('Error loading face-api models:', err);
+      }
+    };
+
+    loadModels();
+
     return () => {
       if (detectionIntervalRef.current) {
         clearInterval(detectionIntervalRef.current);
@@ -26,8 +40,8 @@ export function EmotionDetector() {
   }, []);
 
   const captureAndDetect = useCallback(async () => {
-    if (!webcamRef.current) {
-      setError('Webcam not available');
+    if (!webcamRef.current || !modelsLoaded) {
+      setError('Webcam or face models not available');
       return;
     }
 
@@ -41,23 +55,20 @@ export function EmotionDetector() {
         return;
       }
 
-      // Convert base64 to blob
-      const blob = await fetch(imageSrc).then((res) => res.blob());
-
-      // Call API
-      const result = await detectEmotion(blob);
-
-      if (result.success) {
-        setEmotion(result.dominant_emotion);
+      // Detect expressions using face-api.js
+      const detectedEmotion = await detectFaceExpressions(imageSrc);
+      
+      if (detectedEmotion) {
+        setEmotion(detectedEmotion);
       } else {
-        setError(result.error || 'Emotion detection failed');
+        setError('No face detected');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [modelsLoaded]);
 
   const toggleCamera = () => {
     setShowCamera(!showCamera);
@@ -101,10 +112,17 @@ export function EmotionDetector() {
         onClick={toggleCamera}
         variant="outline"
         className="w-full flex items-center gap-2"
+        disabled={!modelsLoaded && !isLoading}
       >
         <Camera className="h-4 w-4" />
         {showCamera ? 'Hide Camera' : 'Start Detection'}
       </Button>
+      
+      {!modelsLoaded && !error && (
+        <div className="text-center py-2">
+          <p className="text-sm text-muted-foreground">Loading face detection models...</p>
+        </div>
+      )}
       
       {showCamera && (
         <div className="space-y-2">
@@ -140,6 +158,7 @@ export function EmotionDetector() {
               variant={isRealtimeMode ? "destructive" : "default"}
               size="sm"
               className="flex-1 flex items-center gap-2"
+              disabled={!modelsLoaded}
             >
               {isRealtimeMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               {isRealtimeMode ? 'Stop Real-time' : 'Start Real-time'}
