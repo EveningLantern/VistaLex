@@ -3,14 +3,14 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FileText, Text, Settings, LogOut, Camera, BookOpen } from 'lucide-react';
+import { FileText, Text, Settings, LogOut, BookOpen } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import AccessibilitySettings from '@/components/AccessibilitySettings';
 import TextDisplay from '@/components/TextDisplay';
 import ADHDMode from '@/components/ADHDMode';
 import ReadAloud from '@/components/ReadAloud';
 import TextFormatting from '@/components/TextFormatting';
-import ImageOCR from '@/components/ImageOCR';
+import { EmotionDetector } from '@/components/EmotionDetector';
 import { processADHDText } from '@/lib/textProcessing';
 import { summarizeTextWithGemini } from '@/lib/summarizeText';
 import { toast } from '@/lib/toast';
@@ -25,7 +25,6 @@ const TextProcessor = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [activeLeftTab, setActiveLeftTab] = useState("text");
-  const [showImageOCR, setShowImageOCR] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   
   const { user, signOut } = useAuth();
@@ -107,28 +106,6 @@ const TextProcessor = () => {
     }, 600);
   };
   
-  // Text formatting handlers
-  const handleLetterSpacingChange = (value: string) => {
-    updateTextFormatting({
-      ...textFormatting,
-      letterSpacing: value
-    });
-  };
-  
-  const handleLineHeightChange = (value: string) => {
-    updateTextFormatting({
-      ...textFormatting,
-      lineHeight: value
-    });
-  };
-  
-  const handleParagraphSpacingChange = (value: string) => {
-    updateTextFormatting({
-      ...textFormatting,
-      paragraphSpacing: value
-    });
-  };
-  
   // Apply color theme to body
   useEffect(() => {
     document.body.className = colorTheme;
@@ -144,7 +121,7 @@ const TextProcessor = () => {
       "grid grid-cols-1 lg:grid-cols-12 gap-6 h-full",
       colorTheme
     )}>
-      {/* Left Column - Input */}
+      {/* Left Column - Input and Text-to-Speech */}
       <div className="lg:col-span-3 space-y-6">
         <div className="flex items-center justify-between">
           <Tabs value={activeLeftTab} onValueChange={setActiveLeftTab} className="w-full">
@@ -166,15 +143,6 @@ const TextProcessor = () => {
                   className={showSettings ? "text-primary" : ""}
                 >
                   <Settings className="h-5 w-5" />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowImageOCR(true)}
-                  title="Extract text from image"
-                >
-                  <Camera className="h-5 w-5" />
                 </Button>
                 
                 {user ? (
@@ -268,6 +236,12 @@ const TextProcessor = () => {
             <AccessibilitySettings isLoggedIn={!!user} />
           </div>
         )}
+
+        {/* Text-to-Speech Controls - Moved from right panel */}
+        <div className="glass rounded-lg p-4 animate-fade-in">
+          <h3 className="text-sm font-medium mb-3">Text-to-Speech</h3>
+          <ReadAloud text={text} />
+        </div>
       </div>
       
       {/* Middle Column - Text Display */}
@@ -290,32 +264,20 @@ const TextProcessor = () => {
         )}
       </div>
       
-      {/* Right Column - Text Formatting and Text-to-Speech */}
+      {/* Right Column - Text Formatting and Emotion Detection */}
       <div className="lg:col-span-3 space-y-6">
         {/* Text Formatting Toolbar */}
         {text && (
           <TextFormatting 
-            onLetterSpacingChange={handleLetterSpacingChange}
-            onLineHeightChange={handleLineHeightChange}
-            onParagraphSpacingChange={handleParagraphSpacingChange}
-            onImageUploadClick={() => setShowImageOCR(true)}
+            onLetterSpacingChange={(value) => updateTextFormatting({...textFormatting, letterSpacing: value})}
+            onLineHeightChange={(value) => updateTextFormatting({...textFormatting, lineHeight: value})}
+            onParagraphSpacingChange={(value) => updateTextFormatting({...textFormatting, paragraphSpacing: value})}
           />
         )}
         
-        {/* Text-to-Speech Controls */}
-        <div className="glass rounded-lg p-4 animate-fade-in">
-          <h3 className="text-sm font-medium mb-3">Text-to-Speech</h3>
-          <ReadAloud text={text} />
-        </div>
+        {/* Emotion Detector - Added here */}
+        <EmotionDetector />
       </div>
-      
-      {/* Image OCR Modal */}
-      {showImageOCR && (
-        <ImageOCR 
-          onTextExtracted={handleTextExtracted}
-          onClose={() => setShowImageOCR(false)}
-        />
-      )}
     </div>
   );
 };
