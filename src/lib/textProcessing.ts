@@ -1,4 +1,3 @@
-
 // Function to process text for dyslexia mode
 export function processDyslexiaText(text: string, options: { 
   boldFirstLetter: boolean, 
@@ -51,8 +50,8 @@ import * as pdfjs from 'pdfjs-dist';
 
 // This ensures PDF.js works in both browser and worker environments
 if (typeof window !== 'undefined') {
-  // Use CDN for the worker to ensure it's accessible
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+  // Use a local worker path instead of CDN
+  pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 }
 
 // Type guard to check if an object is a TextItem with a str property
@@ -154,7 +153,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
             resolve(cleanedText);
           } else {
             console.log("No text found in PDF using direct extraction");
-            resolve("No text could be extracted from this PDF. It might be a scanned document requiring OCR.");
+            resolve("No machine-readable text found. This appears to be a scanned document. Try using the OCR feature for better results.");
           }
         } catch (directExtractError) {
           console.error("Error in PDF extraction:", directExtractError);
@@ -206,11 +205,70 @@ export async function extractTextFromDOCX(file: File): Promise<string> {
   });
 }
 
+// Enhanced function to handle OCR for images
+export async function performOCROnImage(imageFile: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const img = new Image();
+        img.onload = async () => {
+          try {
+            // Use Tesseract.js for OCR
+            const { createWorker } = await import('tesseract.js');
+            const worker = await createWorker({
+              logger: m => console.log(m)
+            });
+            
+            // Initialize with English language
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+            
+            // Recognize text from the image
+            const { data } = await worker.recognize(img.src);
+            await worker.terminate();
+            
+            if (data.text.trim()) {
+              resolve(data.text);
+            } else {
+              resolve("No text was detected in this image.");
+            }
+          } catch (error) {
+            console.error("OCR processing error:", error);
+            reject(new Error(`OCR failed: ${error.message}`));
+          }
+        };
+        img.onerror = () => {
+          reject(new Error("Failed to load image for OCR"));
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        reject(new Error("Failed to read image file"));
+      };
+      reader.readAsDataURL(imageFile);
+    } catch (error) {
+      reject(new Error(`OCR initialization failed: ${error.message}`));
+    }
+  });
+}
+
 // Extract text from any supported file type
 export async function extractTextFromFile(file: File): Promise<string> {
   try {
-    if (file.type === 'application/pdf') {
-      return await extractTextFromPDF(file);
+    // Add image formats for OCR
+    if (['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff'].includes(file.type)) {
+      return await performOCROnImage(file);
+    }
+    else if (file.type === 'application/pdf') {
+      try {
+        // First try normal PDF extraction
+        return await extractTextFromPDF(file);
+      } catch (error) {
+        // If normal extraction fails, could indicate a scanned PDF
+        console.log("Standard PDF extraction failed, this may be a scanned document");
+        return "This appears to be a scanned PDF. Please use the OCR feature for better results.";
+      }
     } 
     else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       return await extractTextFromDOCX(file);

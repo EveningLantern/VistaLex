@@ -1,11 +1,12 @@
 
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { Upload, FileText, FileIcon, ImageIcon, XCircle } from 'lucide-react';
+import { Upload, FileText, FileIcon, ImageIcon, XCircle, ScanText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import { extractTextFromFile } from '@/lib/textProcessing';
 import { Progress } from '@/components/ui/progress';
+import OCRButton from './OCRButton';
 
 type FileUploadProps = {
   onTextExtracted: (text: string) => void;
@@ -17,6 +18,7 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [processingStage, setProcessingStage] = useState('');
+  const [isScannedDocument, setIsScannedDocument] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -36,11 +38,17 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
       'text/plain',
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/bmp',
+      'image/tiff'
     ];
     
     if (!allowedTypes.includes(file.type)) {
       toast.error('Unsupported file type', {
-        description: 'Please upload a text, PDF, or Word document.'
+        description: 'Please upload a text, PDF, Word document, or image file.'
       });
       return;
     }
@@ -48,6 +56,7 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
     setFile(file);
     setIsProcessing(true);
     setProgress(10);
+    setIsScannedDocument(false);
     
     try {
       // Different processing stages with better feedback
@@ -60,6 +69,8 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
         }, 300);
       } else if (file.type.includes('word')) {
         setProcessingStage('Extracting text from Word document...');
+      } else if (file.type.includes('image')) {
+        setProcessingStage('Analyzing image...');
       } else {
         setProcessingStage('Reading text file...');
       }
@@ -68,46 +79,49 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
       setProgress(30);
       
       // Simulate additional progress for PDF files which take longer
-      if (file.type === 'application/pdf') {
+      let progressInterval: NodeJS.Timeout | null = null;
+      
+      if (file.type === 'application/pdf' || file.type.includes('image')) {
         const simulateProgress = () => {
           setProgress(prev => {
             if (prev < 80) {
-              return prev + 10;
+              return prev + 5;
             }
             return prev;
           });
         };
         
         // Simulate progress at intervals
-        const interval = setInterval(simulateProgress, 500);
-        
-        // Use our enhanced utility to extract text from the file
-        const extractedText = await extractTextFromFile(file);
-        
-        clearInterval(interval);
-        
-        // Processing complete
-        setProgress(100);
-        setProcessingStage('Processing complete');
-        
-        onTextExtracted(extractedText);
-        
-        if (extractedText.includes('No text could be extracted')) {
-          toast.warning('Limited text extraction', {
-            description: 'The PDF may be scanned or have limited machine-readable text.'
-          });
-        } else {
-          toast.success('Document processed successfully', {
-            description: file.type === 'application/pdf' ? 'PDF text extracted and displayed' : 'Document processed successfully'
-          });
-        }
+        progressInterval = setInterval(simulateProgress, 500);
+      }
+      
+      // Use our enhanced utility to extract text from the file
+      const extractedText = await extractTextFromFile(file);
+      
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      
+      // Check if the result indicates a scanned document
+      if (extractedText.includes('scanned document') || extractedText.includes('OCR feature')) {
+        setIsScannedDocument(true);
+        toast.info('Scanned document detected', {
+          description: 'This appears to be a scanned document. Use OCR for better results.'
+        });
+      }
+      
+      // Processing complete
+      setProgress(100);
+      setProcessingStage('Processing complete');
+      
+      onTextExtracted(extractedText);
+      
+      if (extractedText.includes('No text could be extracted') || extractedText.includes('No text was detected')) {
+        toast.warning('Limited text extraction', {
+          description: 'The document may be scanned or have limited machine-readable text.'
+        });
       } else {
-        // For non-PDF files
-        const extractedText = await extractTextFromFile(file);
-        setProgress(100);
-        setProcessingStage('Processing complete');
-        onTextExtracted(extractedText);
-        toast.success('File processed successfully');
+        toast.success('Document processed successfully');
       }
     } catch (error) {
       console.error('Error processing file:', error);
@@ -145,18 +159,19 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
   
   const clearFile = () => {
     setFile(null);
+    setIsScannedDocument(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
   
   return (
-    <div className="w-full animate-fade-in">
+    <div className="w-full animate-fade-in space-y-4">
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept=".txt,.pdf,.docx"
+        accept=".txt,.pdf,.docx,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff"
         className="hidden"
       />
       
@@ -181,41 +196,62 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
               Choose File
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
-              Supports PDF (including scanned documents), TXT, DOCX
+              Supports PDF, TXT, DOCX, and image files (JPG, PNG, etc.)
             </p>
           </div>
         </div>
       ) : (
-        <div className="p-4 border rounded-lg glass animate-scale-in">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center">
-              {file.type.includes('pdf') ? (
-                <FileText className="h-8 w-8 text-primary mr-3" />
-              ) : file.type.includes('word') ? (
-                <FileIcon className="h-8 w-8 text-primary mr-3" />
-              ) : (
-                <ImageIcon className="h-8 w-8 text-primary mr-3" />
-              )}
-              <div>
-                <p className="font-medium">{file.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {isProcessing ? processingStage || 'Processing...' : 'Processed'}
+        <div className="space-y-4">
+          <div className="p-4 border rounded-lg glass animate-scale-in">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                {file.type.includes('pdf') ? (
+                  <FileText className="h-8 w-8 text-primary mr-3" />
+                ) : file.type.includes('word') ? (
+                  <FileIcon className="h-8 w-8 text-primary mr-3" />
+                ) : file.type.includes('image') ? (
+                  <ImageIcon className="h-8 w-8 text-primary mr-3" />
+                ) : (
+                  <FileText className="h-8 w-8 text-primary mr-3" />
+                )}
+                <div>
+                  <p className="font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isProcessing ? processingStage || 'Processing...' : 'Processed'}
+                  </p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={clearFile} disabled={isProcessing}>
+                <XCircle className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {isProcessing && (
+              <div className="w-full">
+                <Progress value={progress} className="h-2 mb-1" />
+                <p className="text-xs text-muted-foreground text-right">
+                  {progress}%
                 </p>
               </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={clearFile} disabled={isProcessing}>
-              <XCircle className="h-5 w-5" />
-            </Button>
+            )}
           </div>
           
-          {isProcessing && (
-            <div className="w-full">
-              <Progress value={progress} className="h-2 mb-1" />
-              <p className="text-xs text-muted-foreground text-right">
-                {progress}%
-              </p>
+          {/* Show OCR button if scanned document is detected */}
+          {isScannedDocument && !isProcessing && (
+            <div className="animate-slide-up">
+              <OCRButton onTextExtracted={onTextExtracted} />
             </div>
           )}
+        </div>
+      )}
+      
+      {/* Always show OCR button as an alternative */}
+      {!isProcessing && (
+        <div className="mt-4 border-t pt-4">
+          <p className="text-sm text-muted-foreground mb-2">
+            Working with images or scanned documents?
+          </p>
+          <OCRButton onTextExtracted={onTextExtracted} />
         </div>
       )}
     </div>

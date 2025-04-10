@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FileText, Text, Settings, LogOut, BookOpen } from 'lucide-react';
+import { FileText, Text, Settings, LogOut, BookOpen, ScanText } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import AccessibilitySettings from '@/components/AccessibilitySettings';
 import TextDisplay from '@/components/TextDisplay';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { Link } from 'react-router-dom';
+import OCRButton from './OCRButton';
 
 const TextProcessor = () => {
   const [text, setText] = useState('');
@@ -133,6 +134,9 @@ const TextProcessor = () => {
                 <TabsTrigger value="file" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" /> File
                 </TabsTrigger>
+                <TabsTrigger value="ocr" className="flex items-center gap-2">
+                  <ScanText className="h-4 w-4" /> OCR
+                </TabsTrigger>
               </TabsList>
               
               <div className="flex items-center gap-2">
@@ -225,6 +229,33 @@ const TextProcessor = () => {
                     </Button>
                   </div>
                 )}
+              </TabsContent>
+              
+              <TabsContent value="ocr" className="mt-0">
+                <div className="space-y-4">
+                  <div className="text-center p-4 border border-dashed rounded-lg">
+                    <ScanText className="h-10 w-10 text-primary mx-auto mb-2" />
+                    <h3 className="font-medium mb-1">Extract Text from Images</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Use OCR to extract text from images or scanned documents
+                    </p>
+                    <OCRButton onTextExtracted={handleTextExtracted} />
+                  </div>
+                  
+                  {text.trim() && (
+                    <div className="mt-4">
+                      <Button
+                        onClick={handleSummarize}
+                        disabled={isSummarizing}
+                        className="w-full flex items-center gap-2"
+                        variant="secondary"
+                      >
+                        <BookOpen className="h-4 w-4" />
+                        {isSummarizing ? 'Summarizing...' : 'Summarize Text'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
             </div>
           </Tabs>
