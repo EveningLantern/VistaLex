@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from '@/lib/toast';
 import Webcam from 'react-webcam';
-import { loadFaceApiModels, detectFaceExpressions } from '@/lib/faceApi';
+import { detectEmotion } from '@/lib/api';
 
 const EMOJIS = ["😀", "😣", "😞", "😵‍💫", "📸"];
 
@@ -17,7 +16,6 @@ const AttentionTracker = () => {
   const [currentEmotion, setCurrentEmotion] = useState("neutral");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modelsLoaded, setModelsLoaded] = useState(false);
   const webcamRef = useRef<Webcam>(null);
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -30,22 +28,8 @@ const AttentionTracker = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Load face-api models when component mounts
+  // Clean up when component unmounts or tracking stops
   useEffect(() => {
-    const loadModels = async () => {
-      try {
-        await loadFaceApiModels();
-        setModelsLoaded(true);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load facial recognition models');
-        console.error('Error loading face-api models:', err);
-      }
-    };
-
-    loadModels();
-
-    // Clean up when component unmounts or tracking stops
     return () => {
       if (detectionIntervalRef.current) {
         clearInterval(detectionIntervalRef.current);
@@ -56,35 +40,6 @@ const AttentionTracker = () => {
   const handleButtonClick = () => {
     setDialogOpen(true);
   };
-
-  const detectEmotionFromWebcam = useCallback(async () => {
-    if (!webcamRef.current || !modelsLoaded) {
-      setError('Webcam or face models not available');
-      return;
-    }
-
-    try {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (!imageSrc) {
-        setError('Failed to capture image');
-        return;
-      }
-
-      // Detect expressions using face-api.js
-      const detectedEmotion = await detectFaceExpressions(imageSrc);
-      
-      if (detectedEmotion) {
-        setCurrentEmotion(detectedEmotion);
-        setError(null);
-      } else {
-        // Just set to neutral if no face detected, but don't show error
-        // to avoid disrupting the user experience
-        setCurrentEmotion('neutral');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    }
-  }, [modelsLoaded]);
 
   const startTracking = async () => {
     setDialogOpen(false);
@@ -110,6 +65,36 @@ const AttentionTracker = () => {
       setIsLoading(false);
     }
   };
+
+  const detectEmotionFromWebcam = useCallback(async () => {
+    if (!webcamRef.current) {
+      setError('Webcam not available');
+      return;
+    }
+
+    try {
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (!imageSrc) {
+        setError('Failed to capture image');
+        return;
+      }
+
+      // Convert base64 to blob
+      const blob = await fetch(imageSrc).then((res) => res.blob());
+
+      // Call API
+      const result = await detectEmotion(blob);
+
+      if (result.success) {
+        setCurrentEmotion(result.dominant_emotion);
+        setError(null);
+      } else {
+        setError(result.error || 'Emotion detection failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    }
+  }, []);
 
   const stopTracking = () => {
     if (detectionIntervalRef.current) {
@@ -168,7 +153,7 @@ const AttentionTracker = () => {
           
           <DialogFooter className="flex flex-row justify-between sm:justify-between">
             <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-            <Button onClick={startTracking} disabled={isLoading || !modelsLoaded}>
+            <Button onClick={startTracking} disabled={isLoading}>
               {isLoading ? 'Starting...' : 'Start Tracking'}
             </Button>
           </DialogFooter>
