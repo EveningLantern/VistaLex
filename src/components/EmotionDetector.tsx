@@ -1,10 +1,11 @@
 
 'use client';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { detectEmotion } from '@/lib/api';
 import { Button } from './ui/button';
-import { Smile, Camera } from 'lucide-react';
+import { Smile, Camera, Eye, EyeOff } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
 export function EmotionDetector() {
   const webcamRef = useRef<Webcam>(null);
@@ -12,6 +13,17 @@ export function EmotionDetector() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [isRealtimeMode, setIsRealtimeMode] = useState(false);
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current);
+      }
+    };
+  }, []);
 
   const captureAndDetect = useCallback(async () => {
     if (!webcamRef.current) {
@@ -52,7 +64,33 @@ export function EmotionDetector() {
     if (!showCamera) {
       // Start detection after a short delay to allow camera initialization
       setTimeout(() => captureAndDetect(), 1000);
+    } else {
+      stopRealtimeDetection();
     }
+  };
+
+  const toggleRealtimeMode = () => {
+    if (isRealtimeMode) {
+      stopRealtimeDetection();
+    } else {
+      startRealtimeDetection();
+    }
+  };
+
+  const startRealtimeDetection = () => {
+    setIsRealtimeMode(true);
+    // Run emotion detection every 2 seconds
+    detectionIntervalRef.current = setInterval(captureAndDetect, 2000);
+    toast.success('Real-time emotion detection started');
+  };
+
+  const stopRealtimeDetection = () => {
+    setIsRealtimeMode(false);
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
+    }
+    toast.info('Real-time emotion detection stopped');
   };
 
   return (
@@ -86,15 +124,27 @@ export function EmotionDetector() {
             <span className="text-sm font-medium capitalize">{emotion}</span>
           </div>
           
-          <Button 
-            onClick={captureAndDetect}
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Processing...' : 'Detect Again'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={captureAndDetect}
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              disabled={isLoading || isRealtimeMode}
+            >
+              {isLoading ? 'Processing...' : 'Detect Once'}
+            </Button>
+            
+            <Button
+              onClick={toggleRealtimeMode}
+              variant={isRealtimeMode ? "destructive" : "default"}
+              size="sm"
+              className="flex-1 flex items-center gap-2"
+            >
+              {isRealtimeMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {isRealtimeMode ? 'Stop Real-time' : 'Start Real-time'}
+            </Button>
+          </div>
         </div>
       )}
     </div>
