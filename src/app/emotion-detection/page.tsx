@@ -1,3 +1,4 @@
+
 import { EmotionDetector } from '@/components/EmotionDetector';
 
 export default function EmotionDetectionPage() {

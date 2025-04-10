@@ -1,3 +1,4 @@
+
 // Function to process text for dyslexia mode
 export function processDyslexiaText(text: string, options: { 
   boldFirstLetter: boolean, 
@@ -48,9 +49,8 @@ export function processADHDText(text: string) {
 // Import pdfjs directly and set the worker source
 import * as pdfjs from 'pdfjs-dist';
 
-// This ensures PDF.js works in both browser and worker environments
+// Set the worker source path
 if (typeof window !== 'undefined') {
-  // Use a local worker path instead of CDN
   pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 }
 
@@ -59,7 +59,7 @@ function isTextItem(item: any): item is { str: string } {
   return item && typeof item.str === 'string';
 }
 
-// Enhanced PDF text extraction function with better handling for book PDFs
+// Improved PDF text extraction function
 export async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -84,73 +84,59 @@ export async function extractTextFromPDF(file: File): Promise<string> {
           
           let fullText = '';
           
-          // Enhanced text extraction from each page with better handling for book layouts
+          // Process each page
           for (let i = 1; i <= pdf.numPages; i++) {
             console.log(`Processing page ${i} of ${pdf.numPages}...`);
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
             
-            // Enhanced text extraction with better space handling
-            const pageText = textContent.items
-              .map((item, idx, arr) => {
-                // Check if the item has the str property (TextItem vs TextMarkedContent)
-                if (!isTextItem(item)) return '';
-                
-                // Get the current item's text
-                const text = item.str || '';
-                
-                // Add appropriate spacing based on positioning
-                // This helps with book layouts that might have columns or special formatting
-                if (idx > 0 && arr[idx - 1]) {
-                  const prevItem = arr[idx - 1];
-                  
-                  // Skip if previous item doesn't have transform property
-                  if (!isTextItem(prevItem) || !('transform' in prevItem) || !('transform' in item)) {
-                    return text;
-                  }
-                  
-                  // Safe access to transform properties
-                  const prevTransform = ('transform' in prevItem) ? prevItem.transform : [0, 0, 0, 0, 0, 0];
-                  const currTransform = ('transform' in item) ? item.transform : [0, 0, 0, 0, 0, 0];
-                  
-                  if (!prevTransform || !currTransform || 
-                      !Array.isArray(prevTransform) || !Array.isArray(currTransform)) {
-                    return text;
-                  }
-                  
-                  // If there's a significant horizontal or vertical position change,
-                  // add appropriate spacing
-                  const xDiff = Math.abs(currTransform[4] - prevTransform[4]);
-                  const yDiff = Math.abs(currTransform[5] - prevTransform[5]);
-                  
-                  // New line detection (significant y position change)
-                  if (yDiff > 5) {
-                    return `\n${text}`;
-                  }
-                  
-                  // New paragraph or column detection (significant x position change)
-                  if (currTransform[4] < prevTransform[4] && xDiff > 50) {
-                    return `\n\n${text}`;
-                  }
-                }
-                return text;
-              })
-              .join(' ')
-              // Clean up excessive whitespace
-              .replace(/\s+/g, ' ')
-              .trim();
+            // Extract text from the page
+            let pageText = '';
+            let lastY;
+            let currentLine = '';
+            
+            for (let j = 0; j < textContent.items.length; j++) {
+              const item = textContent.items[j];
               
+              if (!isTextItem(item)) continue;
+              
+              const text = item.str;
+              
+              // Check for new line based on y-position difference
+              if (lastY !== undefined && ('transform' in item)) {
+                const y = item.transform[5];
+                const yDiff = Math.abs(y - lastY);
+                
+                // If position indicates a new line
+                if (yDiff > 5) {
+                  pageText += currentLine.trim() + '\n';
+                  currentLine = text + ' ';
+                } else {
+                  currentLine += text + ' ';
+                }
+                
+                lastY = y;
+              } else if ('transform' in item) {
+                currentLine += text + ' ';
+                lastY = item.transform[5];
+              } else {
+                currentLine += text + ' ';
+              }
+            }
+            
+            // Add the last line
+            pageText += currentLine.trim();
+            
+            // Add the page text to the full text
             fullText += pageText + '\n\n';
           }
           
-          // Clean up the final text for better readability
-          const cleanedText = fullText
-            .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with just two
-            .trim();
+          // Clean up the text
+          fullText = fullText.replace(/\s+/g, ' ').trim();
           
-          if (cleanedText.trim()) {
+          if (fullText.trim()) {
             console.log("PDF extraction completed successfully!");
-            resolve(cleanedText);
+            resolve(fullText);
           } else {
             console.log("No text found in PDF using direct extraction");
             resolve("No machine-readable text found. This appears to be a scanned document. Try using the OCR feature for better results.");
