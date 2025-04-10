@@ -1,9 +1,10 @@
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from '@/lib/toast';
+import Webcam from 'react-webcam';
+import { detectEmotion } from '@/lib/api';
 
 const EMOJIS = ["😀", "😣", "😞", "😵‍💫", "📸"];
 
@@ -12,9 +13,11 @@ const AttentionTracker = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [tracking, setTracking] = useState(false);
-  const [currentEmotion, setCurrentEmotion] = useState("happy");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const [currentEmotion, setCurrentEmotion] = useState("neutral");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const webcamRef = useRef<Webcam>(null);
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cycle through emojis for the button
   useEffect(() => {
@@ -25,79 +28,86 @@ const AttentionTracker = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Clean up video stream when component unmounts
+  // Clean up when component unmounts or tracking stops
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current);
       }
     };
   }, []);
 
-  const handleButtonClick = async () => {
+  const handleButtonClick = () => {
+    setDialogOpen(true);
+  };
+
+  const startTracking = async () => {
+    setDialogOpen(false);
+    setIsLoading(true);
+    
     try {
-      // Check if browser supports getUserMedia
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error("Camera access not supported", {
-          description: "Your browser doesn't support camera access"
-        });
+      // Initial detection
+      await detectEmotionFromWebcam();
+      
+      // Start periodic detection
+      detectionIntervalRef.current = setInterval(detectEmotionFromWebcam, 5000);
+      setTracking(true);
+      
+      toast.success("Attention tracking started", {
+        description: "Your emotions will now be tracked during study"
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start tracking');
+      toast.error("Failed to start tracking", {
+        description: "Could not initialize emotion detection"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const detectEmotionFromWebcam = useCallback(async () => {
+    if (!webcamRef.current) {
+      setError('Webcam not available');
+      return;
+    }
+
+    try {
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (!imageSrc) {
+        setError('Failed to capture image');
         return;
       }
 
-      // Request camera permissions first
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' } 
-      });
-      
-      streamRef.current = stream;
-      
-      // Show the dialog after permissions granted
-      setDialogOpen(true);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      // Convert base64 to blob
+      const blob = await fetch(imageSrc).then((res) => res.blob());
+
+      // Call API
+      const result = await detectEmotion(blob);
+
+      if (result.success) {
+        setCurrentEmotion(result.dominant_emotion);
+        setError(null);
+      } else {
+        setError(result.error || 'Emotion detection failed');
       }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      toast.error("Camera access denied", {
-        description: "Please allow camera access to use emotion tracking"
-      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     }
-  };
-
-  const startTracking = () => {
-    setDialogOpen(false);
-    setTracking(true);
-    toast.success("Attention tracking started", {
-      description: "Your emotions will now be tracked during study"
-    });
-    
-    // Simulate emotion detection (in a real app, this would use ML)
-    const emotions = ["happy", "sad", "confused", "tired", "focused"];
-    const emotionInterval = setInterval(() => {
-      const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
-      setCurrentEmotion(randomEmotion);
-    }, 5000);
-
-    // Store the interval ID for cleanup
-    return () => clearInterval(emotionInterval);
-  };
+  }, []);
 
   const stopTracking = () => {
-    setTracking(false);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
     }
+    setTracking(false);
+    setAlertOpen(false);
     toast.info("Attention tracking stopped");
   };
 
   const handleCancel = () => {
     setDialogOpen(false);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
   };
 
   const handleStopClick = () => {
@@ -129,18 +139,23 @@ const AttentionTracker = () => {
           </DialogHeader>
           
           <div className="my-4">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
+            <Webcam
+              ref={webcamRef}
+              audio={false}
+              screenshotFormat="image/jpeg"
+              videoConstraints={{ facingMode: 'user' }}
               className="w-full rounded-md border"
               style={{ maxHeight: '200px', objectFit: 'cover' }}
+              onUserMediaError={() => setError('Webcam access denied')}
             />
+            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
           </div>
           
           <DialogFooter className="flex flex-row justify-between sm:justify-between">
             <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-            <Button onClick={startTracking}>Start Tracking</Button>
+            <Button onClick={startTracking} disabled={isLoading}>
+              {isLoading ? 'Starting...' : 'Start Tracking'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -165,7 +180,7 @@ const AttentionTracker = () => {
       {tracking && (
         <div className="fixed bottom-4 right-4 bg-background/80 backdrop-blur-sm p-2 rounded-lg border shadow-sm flex items-center gap-2 z-50">
           <span className="text-sm font-medium">Current emotion:</span>
-          <span className="text-primary font-bold">{currentEmotion}</span>
+          <span className="text-primary font-bold capitalize">{currentEmotion}</span>
           <Button size="sm" variant="ghost" onClick={handleStopClick} className="ml-2">
             Stop
           </Button>

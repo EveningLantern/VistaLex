@@ -1,0 +1,6 @@
+fastapi>=0.68.0
+uvicorn>=0.15.0
+python-multipart>=0.0.5
+deepface>=0.0.79
+opencv-python>=4.5.0
+numpy>=1.21.0
