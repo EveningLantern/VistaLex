@@ -11,7 +11,6 @@ import Welcome from "./pages/Welcome";
 import { AuthProvider } from "./context/AuthContext";
 import UserPreferencesProvider from "./context/UserPreferencesContext";
 import EmotionDetectionPage from "./app/emotion-detection/page";
-import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +26,6 @@ const App = () => (
             <Route path="/app" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/emotion-detection" element={<EmotionDetectionPage />} />
-            <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

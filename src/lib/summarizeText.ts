@@ -1,6 +1,6 @@
 
-// Export the GEMINI_CONFIG so it can be imported in other files
-export const GEMINI_CONFIG = {
+// Configuration constants for Gemini API
+const GEMINI_CONFIG = {
   apiEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
   apiKey: 'AIzaSyA98M3QYhUZm_UMok52r6XsAk1UJoPSq_Y',
   maxTextLength: 30000,
