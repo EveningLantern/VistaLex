@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import UserStreak from './UserStreak';
 import { useAuth } from '@/context/AuthContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
 
 const TextProcessor = () => {
   const [processedText, setProcessedText] = useState<string>('');
@@ -20,6 +21,7 @@ const TextProcessor = () => {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [summarizedText, setSummarizedText] = useState<string>('');
   const { user } = useAuth();
+  const { colorTheme, dyslexiaOptions, textFormatting } = useUserPreferences();
 
   // Reset error state when text changes
   useEffect(() => {
@@ -28,10 +30,22 @@ const TextProcessor = () => {
     }
   }, [originalText]);
 
-  const handleFileContent = (content: string) => {
+  const handleTextExtracted = (content: string) => {
     setOriginalText(content);
     setProcessedText(content);
     setSummarizedText('');
+  };
+
+  const handleLetterSpacingChange = (value: string) => {
+    // Handled by UserPreferencesContext
+  };
+  
+  const handleLineHeightChange = (value: string) => {
+    // Handled by UserPreferencesContext
+  };
+  
+  const handleParagraphSpacingChange = (value: string) => {
+    // Handled by UserPreferencesContext
   };
 
   const handleFormat = (formattedText: string) => {
@@ -86,14 +100,13 @@ const TextProcessor = () => {
                   <TabsTrigger value="formatting">Format</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upload" className="space-y-4">
-                  <FileUpload onFileContent={handleFileContent} />
+                  <FileUpload onTextExtracted={handleTextExtracted} />
                 </TabsContent>
                 <TabsContent value="formatting" className="space-y-4">
                   <TextFormatting 
-                    text={originalText} 
-                    onFormat={handleFormat} 
-                    onSummarize={handleSummarize}
-                    isSummarizing={isProcessing}
+                    onLetterSpacingChange={handleLetterSpacingChange}
+                    onLineHeightChange={handleLineHeightChange}
+                    onParagraphSpacingChange={handleParagraphSpacingChange}
                   />
                 </TabsContent>
               </Tabs>
@@ -115,7 +128,12 @@ const TextProcessor = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="h-[calc(100%-5rem)] overflow-auto">
-              <TextDisplay text={processedText} error={processingError} />
+              <TextDisplay 
+                text={processedText} 
+                colorTheme={colorTheme} 
+                dyslexiaOptions={dyslexiaOptions}
+                textFormatting={textFormatting}
+              />
             </CardContent>
           </Card>
         </div>
