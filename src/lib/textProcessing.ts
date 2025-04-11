@@ -60,105 +60,42 @@ function isTextItem(item: any): item is { str: string } {
 }
 
 // Improved PDF text extraction function
-export async function extractTextFromPDF(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = async (event) => {
+import * as pdfjsLib from 'pdfjs-dist';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/public/pdf.worker.js';
+
+
+export const extractTextFromPDF = async (
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    let text = '';
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       try {
-        if (!event.target?.result) {
-          reject(new Error('Failed to read PDF file'));
-          return;
-        }
-        
-        try {
-          console.log("Starting PDF extraction...");
-          // Use pdfjs for text extraction
-          const pdfData = new Uint8Array(event.target.result as ArrayBuffer);
-          
-          // Load the PDF document
-          console.log("Loading PDF document...");
-          const loadingTask = pdfjs.getDocument({ data: pdfData });
-          const pdf = await loadingTask.promise;
-          console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
-          
-          let fullText = '';
-          
-          // Process each page
-          for (let i = 1; i <= pdf.numPages; i++) {
-            console.log(`Processing page ${i} of ${pdf.numPages}...`);
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            
-            // Extract text from the page
-            let pageText = '';
-            let lastY;
-            let currentLine = '';
-            
-            for (let j = 0; j < textContent.items.length; j++) {
-              const item = textContent.items[j];
-              
-              if (!isTextItem(item)) continue;
-              
-              const text = item.str;
-              
-              // Check for new line based on y-position difference
-              if (lastY !== undefined && ('transform' in item)) {
-                const y = item.transform[5];
-                const yDiff = Math.abs(y - lastY);
-                
-                // If position indicates a new line
-                if (yDiff > 5) {
-                  pageText += currentLine.trim() + '\n';
-                  currentLine = text + ' ';
-                } else {
-                  currentLine += text + ' ';
-                }
-                
-                lastY = y;
-              } else if ('transform' in item) {
-                currentLine += text + ' ';
-                lastY = item.transform[5];
-              } else {
-                currentLine += text + ' ';
-              }
-            }
-            
-            // Add the last line
-            pageText += currentLine.trim();
-            
-            // Add the page text to the full text
-            fullText += pageText + '\n\n';
-          }
-          
-          // Clean up the text
-          fullText = fullText.replace(/\s+/g, ' ').trim();
-          
-          if (fullText.trim()) {
-            console.log("PDF extraction completed successfully!");
-            resolve(fullText);
-          } else {
-            console.log("No text found in PDF using direct extraction");
-            resolve("No machine-readable text found. This appears to be a scanned document. Try using the OCR feature for better results.");
-          }
-        } catch (directExtractError) {
-          console.error("Error in PDF extraction:", directExtractError);
-          reject(new Error('Failed to extract text from PDF: ' + directExtractError.message));
-        }
+        const page = await pdf.getPage(pageNum);
+        const content = await page.getTextContent();
+        const strings = content.items.map(item => (item as any).str).join(' ');
+        text += strings + '\n\n';
       } catch (error) {
-        console.error('Error parsing PDF:', error);
-        reject(new Error('Failed to parse PDF file: ' + error.message));
+        console.error(`Error reading page ${pageNum}:`, error);
+        text += `\n\n[Error reading page ${pageNum}]\n\n`;
       }
-    };
-    
-    reader.onerror = (error) => {
-      console.error('FileReader error:', error);
-      reject(new Error('Failed to read PDF file'));
-    };
-    
-    reader.readAsArrayBuffer(file);
-  });
-}
+
+      onProgress?.(Math.round((pageNum / pdf.numPages) * 100));
+    }
+
+    return text;
+  } catch (error) {
+    console.error('Failed to extract PDF text:', error);
+    throw new Error('Could not extract text from PDF.');
+  }
+};
+
 
 // Extract text from DOCX file
 export async function extractTextFromDOCX(file: File): Promise<string> {
@@ -242,23 +179,51 @@ export async function performOCROnImage(imageFile: File): Promise<string> {
 // Extract text from any supported file type
 export async function extractTextFromFile(file: File): Promise<string> {
   try {
-    // Add image formats for OCR
-    if (['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff'].includes(file.type)) {
-      return await performOCROnImage(file);
+    const isImage = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff'].includes(file.type);
+
+    if (isImage) {
+      // Use backend EasyOCR for image OCR
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('http://localhost:5000/ocr-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      return data.text || 'No text detected in image.';
     }
+
     else if (file.type === 'application/pdf') {
       try {
-        // First try normal PDF extraction
-        return await extractTextFromPDF(file);
+        // First try native PDF text extraction
+        const rawText = await extractTextFromPDF(file);
+        if (rawText && rawText.length > 50) return rawText;
+
+        // Fallback to OCR for scanned PDFs using backend
+        console.log('Falling back to OCR for PDF...');
+
+        const formData = new FormData();
+        formData.append('pdf', file);
+
+        const res = await fetch('http://localhost:5000/ocr-pdf', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        return data.text || 'No text detected in scanned PDF.';
       } catch (error) {
-        // If normal extraction fails, could indicate a scanned PDF
-        console.log("Standard PDF extraction failed, this may be a scanned document");
-        return "This appears to be a scanned PDF. Please use the OCR feature for better results.";
+        console.log('Standard and OCR PDF extraction failed:', error);
+        return 'Failed to extract text from PDF.';
       }
-    } 
+    }
+
     else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       return await extractTextFromDOCX(file);
     }
+
     else if (file.type === 'text/plain') {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -266,7 +231,8 @@ export async function extractTextFromFile(file: File): Promise<string> {
         reader.onerror = reject;
         reader.readAsText(file);
       });
-    } 
+    }
+
     else {
       throw new Error(`Unsupported file type: ${file.type}`);
     }

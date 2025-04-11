@@ -103,12 +103,14 @@ const FileUpload = ({ onTextExtracted }: FileUploadProps) => {
       }
       
       // Check if the result indicates a scanned document
-      if (extractedText.includes('scanned document') || extractedText.includes('OCR feature')) {
+      if (
+        extractedText.includes('scanned PDF') ||
+        extractedText.includes('No machine-readable text') ||
+        extractedText.includes('OCR feature')
+      ) {
         setIsScannedDocument(true);
-        toast.info('Scanned document detected', {
-          description: 'This appears to be a scanned document. Use OCR for better results.'
-        });
       }
+      
       
       // Processing complete
       setProgress(100);

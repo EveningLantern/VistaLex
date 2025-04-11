@@ -133,93 +133,51 @@ const ImageOCR: React.FC<ImageOCRProps> = ({ onTextExtracted, onClose }) => {
         toast.error('No image selected');
         return;
       }
-      
+  
       setIsProcessing(true);
       setProgress(0);
-      
-      // Create a canvas element to process the image if needed
+  
+      // Preprocess the image on canvas
       const img = imageRef.current;
       const canvas = canvasRef.current;
-      
-      if (!img || !canvas) {
-        toast.error('Error preparing image');
-        setIsProcessing(false);
-        return;
-      }
-      
+      if (!img || !canvas) throw new Error("Canvas/image ref missing");
+  
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        toast.error('Could not get canvas context');
-        setIsProcessing(false);
-        return;
-      }
-      
-      // Set canvas dimensions to match image
+      if (!ctx) throw new Error("Could not get canvas context");
+  
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
-      
-      // Process the image
       preprocessImage(canvas, ctx, img);
+  
+      // Convert canvas to blob (better for FormData)
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((b) => b && resolve(b), 'image/png')
+      );
       
-      // Get the processed image data URL
-      const processedImageUrl = canvas.toDataURL('image/png');
-      
-      // Configure tesseract worker with selected settings
-      const worker = await createWorker({
-        logger: m => {
-          console.log(m);
-          if (m.status === 'recognizing text') {
-            setProgress(m.progress * 100);
-          }
-        }
+      const formData = new FormData();
+      formData.append('image', blob, 'upload.png');
+  
+      const response = await fetch('http://localhost:5000/ocr-image', {
+        method: 'POST',
+        body: formData,
       });
-      
-      // Configure worker based on settings
-      const workerConfig: Record<string, any> = {
-        preserve_interword_spaces: ocrSettings.preserveInterwordSpaces ? '1' : '0',
-        tessjs_create_hocr: '0',
-        tessjs_create_tsv: '0',
-      };
-      
-      if (ocrSettings.recognizeHandwriting) {
-        workerConfig.tessedit_ocr_engine_mode = '2'; // LSTM only
-      }
-      
-      if (ocrSettings.detectOrientation) {
-        workerConfig.detect_orientation = '1';
-      }
-      
-      // Load language model
-      await worker.loadLanguage(ocrSettings.language);
-      await worker.initialize(ocrSettings.language);
-      
-      // Apply additional settings
-      await worker.setParameters(workerConfig);
-      
-      // Perform OCR
-      const { data } = await worker.recognize(processedImageUrl);
-      
-      // Terminate worker
-      await worker.terminate();
-      
-      // Process the result
-      if (data.text.trim()) {
-        onTextExtracted(data.text);
-        toast.success('Text extracted from image');
+  
+      const result = await response.json();
+  
+      if (result.text?.trim()) {
+        onTextExtracted(result.text);
+        toast.success('Text extracted successfully');
         onClose();
       } else {
-        toast.warning('No text detected in image', {
-          description: 'Try adjusting the image or the OCR settings'
-        });
+        toast.warning('No text detected in image');
       }
-      
     } catch (error) {
-      console.error('Error extracting text from image:', error);
-      toast.error('Failed to extract text from image');
+      console.error('OCR error:', error);
+      toast.error('Failed to extract text');
     } finally {
       setIsProcessing(false);
     }
-  };
+  };  
   
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
