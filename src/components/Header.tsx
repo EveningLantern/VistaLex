@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Logo from './Logo';
 import AttentionTracker from './AttentionTracker';
+import ProfileIcon from './ProfileIcon';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -29,7 +30,10 @@ const Header = () => {
           <p className="text-sm text-muted-foreground italic hidden md:block animate-fade-in">
             A Clear Vision For Text Accessibility
           </p>
-          <AttentionTracker />
+          <div className="flex items-center gap-2">
+            <AttentionTracker />
+            <ProfileIcon />
+          </div>
         </div>
       </div>
     </header>
