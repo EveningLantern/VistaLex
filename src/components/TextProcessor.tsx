@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FileText, Text, Settings, LogOut, BookOpen, ScanText } from 'lucide-react';
+import { FileText, Text, Settings, LogOut, BookOpen, ScanText, Globe } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import AccessibilitySettings from '@/components/AccessibilitySettings';
 import TextDisplay from '@/components/TextDisplay';
 import ADHDMode from '@/components/ADHDMode';
 import ReadAloud from '@/components/ReadAloud';
 import TextFormatting from '@/components/TextFormatting';
+import TextTranslator from '@/components/TextTranslator';
 import { EmotionDetector } from '@/components/EmotionDetector';
 import { processADHDText } from '@/lib/textProcessing';
 import { summarizeTextWithGemini } from '@/lib/summarizeText';
@@ -107,7 +107,10 @@ const TextProcessor = () => {
     }, 600);
   };
   
-  // Apply color theme to body
+  const handleTranslated = (translatedText: string) => {
+    setText(translatedText);
+  };
+  
   useEffect(() => {
     document.body.className = colorTheme;
     
@@ -122,7 +125,6 @@ const TextProcessor = () => {
       "grid grid-cols-1 lg:grid-cols-12 gap-6 h-full",
       colorTheme
     )}>
-      {/* Left Column - Input and Text-to-Speech */}
       <div className="lg:col-span-3 space-y-6">
         <div className="flex items-center justify-between">
           <Tabs value={activeLeftTab} onValueChange={setActiveLeftTab} className="w-full">
@@ -197,7 +199,6 @@ const TextProcessor = () => {
                     </Button>
                   </div>
                   
-                  {/* Summarize Button */}
                   {text.trim() && (
                     <Button
                       onClick={handleSummarize}
@@ -215,7 +216,6 @@ const TextProcessor = () => {
               <TabsContent value="file" className="mt-0">
                 <FileUpload onTextExtracted={handleTextExtracted} />
                 
-                {/* Show Summarize Button here too if there's extracted text */}
                 {text.trim() && (
                   <div className="mt-4">
                     <Button
@@ -261,21 +261,26 @@ const TextProcessor = () => {
           </Tabs>
         </div>
         
-        {/* Settings Panel - Show only when settings button is clicked */}
         {showSettings && (
           <div className="animate-scale-in">
             <AccessibilitySettings isLoggedIn={!!user} />
           </div>
         )}
 
-        {/* Text-to-Speech Controls - Moved from right panel */}
         <div className="glass rounded-lg p-4 animate-fade-in">
           <h3 className="text-sm font-medium mb-3">Text-to-Speech</h3>
           <ReadAloud text={text} />
         </div>
+        
+        <div className="glass rounded-lg p-4 animate-fade-in">
+          <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary" />
+            Translate
+          </h3>
+          <TextTranslator text={text} onTranslated={handleTranslated} />
+        </div>
       </div>
       
-      {/* Middle Column - Text Display */}
       <div className="lg:col-span-6 min-h-[60vh]">
         {adhdMode ? (
           <ADHDMode 
@@ -295,9 +300,7 @@ const TextProcessor = () => {
         )}
       </div>
       
-      {/* Right Column - Text Formatting and Emotion Detection */}
       <div className="lg:col-span-3 space-y-6">
-        {/* Text Formatting Toolbar */}
         {text && (
           <TextFormatting 
             onLetterSpacingChange={(value) => updateTextFormatting({...textFormatting, letterSpacing: value})}
@@ -306,7 +309,6 @@ const TextProcessor = () => {
           />
         )}
         
-        {/* Emotion Detector - Added here */}
         <EmotionDetector />
       </div>
     </div>
