@@ -21,7 +21,7 @@ const TextProcessor = () => {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [summarizedText, setSummarizedText] = useState<string>('');
   const { user } = useAuth();
-  const { colorTheme, dyslexiaOptions, textFormatting } = useUserPreferences();
+  const { colorTheme, dyslexiaSettings, textFormatting } = useUserPreferences();
 
   // Reset error state when text changes
   useEffect(() => {
@@ -131,7 +131,7 @@ const TextProcessor = () => {
               <TextDisplay 
                 text={processedText} 
                 colorTheme={colorTheme} 
-                dyslexiaOptions={dyslexiaOptions}
+                dyslexiaOptions={dyslexiaSettings}
                 textFormatting={textFormatting}
               />
             </CardContent>
