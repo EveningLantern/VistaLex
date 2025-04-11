@@ -253,9 +253,9 @@ const Welcome = () => {
               <Card className="bg-white/70 backdrop-blur-sm border border-primary/10 shadow-sm transition-all hover:shadow-md hover:translate-y-[-5px]">
                 <CardContent className="pt-6">
                   <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <span className="text-2xl font-bold text-primary">AR</span>
+                    <span className="text-2xl font-bold text-primary">SS</span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-1">Aiden Rivera</h3>
+                  <h3 className="text-xl font-semibold mb-1">Sayandeep Saha</h3>
                   <p className="text-sm text-muted-foreground mb-4">Lead Developer</p>
                   <p className="text-sm">
                     Accessibility advocate with expertise in creating solutions for visual impairments.
@@ -267,9 +267,9 @@ const Welcome = () => {
               <Card className="bg-white/70 backdrop-blur-sm border border-primary/10 shadow-sm transition-all hover:shadow-md hover:translate-y-[-5px]">
                 <CardContent className="pt-6">
                   <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <span className="text-2xl font-bold text-primary">SL</span>
+                    <span className="text-2xl font-bold text-primary">SP</span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-1">Sophia Lee</h3>
+                  <h3 className="text-xl font-semibold mb-1">Sayani Pal</h3>
                   <p className="text-sm text-muted-foreground mb-4">UX Designer</p>
                   <p className="text-sm">
                     Expert in creating inclusive interfaces that work for users with diverse needs.
@@ -281,9 +281,9 @@ const Welcome = () => {
               <Card className="bg-white/70 backdrop-blur-sm border border-primary/10 shadow-sm transition-all hover:shadow-md hover:translate-y-[-5px]">
                 <CardContent className="pt-6">
                   <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <span className="text-2xl font-bold text-primary">JT</span>
+                    <span className="text-2xl font-bold text-primary">SR</span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-1">Julian Thomas</h3>
+                  <h3 className="text-xl font-semibold mb-1">Sayanika Raha</h3>
                   <p className="text-sm text-muted-foreground mb-4">AI Specialist</p>
                   <p className="text-sm">
                     Develops machine learning models for enhanced text processing and OCR capabilities.
@@ -295,9 +295,9 @@ const Welcome = () => {
               <Card className="bg-white/70 backdrop-blur-sm border border-primary/10 shadow-sm transition-all hover:shadow-md hover:translate-y-[-5px]">
                 <CardContent className="pt-6">
                   <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <span className="text-2xl font-bold text-primary">MK</span>
+                    <span className="text-2xl font-bold text-primary">SKB</span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-1">Maya Khan</h3>
+                  <h3 className="text-xl font-semibold mb-1">Suraj Kumar Biswas</h3>
                   <p className="text-sm text-muted-foreground mb-4">Accessibility Researcher</p>
                   <p className="text-sm">
                     Studies and implements the latest accessibility standards and best practices.
