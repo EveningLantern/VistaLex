@@ -33,6 +33,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_streaks: {
+        Row: {
+          badges: string[]
+          created_at: string
+          id: string
+          last_active_date: string
+          longest_streak: number
+          streak_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          badges?: string[]
+          created_at?: string
+          id?: string
+          last_active_date?: string
+          longest_streak?: number
+          streak_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          badges?: string[]
+          created_at?: string
+          id?: string
+          last_active_date?: string
+          longest_streak?: number
+          streak_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
