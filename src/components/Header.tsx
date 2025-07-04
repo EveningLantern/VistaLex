@@ -1,11 +1,16 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { LogIn, LogOut } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
-import AttentionTracker from './AttentionTracker';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,6 +20,14 @@ const Header = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleAuthClick = () => {
+    if (user) {
+      signOut();
+    } else {
+      navigate('/auth');
+    }
+  };
 
   return (
     <header className={cn(
@@ -29,7 +42,24 @@ const Header = () => {
           <p className="text-sm text-muted-foreground italic hidden md:block animate-fade-in">
             A Clear Vision For Text Accessibility
           </p>
-          <AttentionTracker />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAuthClick}
+            className="flex items-center gap-2"
+          >
+            {user ? (
+              <>
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </>
+            ) : (
+              <>
+                <LogIn className="h-4 w-4" />
+                Sign In
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </header>
